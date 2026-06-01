@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Chat</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0b141a;
+  color:white;
+}
+
+#header{
+  background:#202c33;
+  padding:15px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+#back{
+  cursor:pointer;
+}
+
+#messages{
+  padding:15px;
+}
+
+.message{
+  background:#202c33;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+  max-width:80%;
+}
+
+.sender{
+  color:#53bdeb;
+  font-weight:bold;
+}
+
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span id="back">←</span>
+  <span id="chatName">Cargando...</span>
+</div>
+
+<div id="messages"></div>
+
+<script>
+
+document.getElementById("back").onclick = () => {
+  location.href = "/"
+}
+
+const params = new URLSearchParams(location.search)
+const chatId = params.get("id")
+
+async function loadChat(){
+
+  const chats = await fetch("/chats")
+  const chatsData = await chats.json()
+
+  document.getElementById("chatName").innerText =
+    chatsData[chatId]?.name || chatId
+
+  const res = await fetch(
+    "/chat/" + encodeURIComponent(chatId)
+  )
+
+  const messages = await res.json()
+
+  const container =
+    document.getElementById("messages")
+
+  container.innerHTML = ""
+
+  messages.forEach(msg => {
+
+    container.innerHTML += `
+      <div class="message">
+
+        <div class="sender">
+          ${msg.senderName || "Usuario"}
+        </div>
+
+        <div>
+          ${msg.text}
+        </div>
+
+      </div>
+    `
+  })
+
+}
+
+loadChat()
+
+</script>
+
+</body>
+</html>
