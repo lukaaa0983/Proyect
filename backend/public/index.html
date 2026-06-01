@@ -1,284 +1,390 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-<meta charset="UTF-8">
-<title>Proyecto G Chat</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyecto G Chat</title>
+  <style>
 
-<style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:Arial,sans-serif;
-}
+    body {
+      height: 100vh;
+      background: #111b21;
+      color: white;
+      display: flex;
+      flex-direction: column;
+    }
 
-body{
-  height:100vh;
-  background:#111b21;
-  color:white;
-}
+    /* TOPBAR */
+    #topbar {
+      background: #202c33;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
 
-/* Barra superior */
+    #title {
+      font-size: 22px;
+      font-weight: bold;
+    }
 
-#topbar{
-  background:#202c33;
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
+    #icons {
+      display: flex;
+      gap: 15px;
+      font-size: 18px;
+      color: #aebac1;
+      cursor: pointer;
+    }
 
-#title{
-  font-size:22px;
-  font-weight:bold;
-}
+    /* BUSCADOR */
+    #search {
+      padding: 8px 10px;
+      background: #111b21;
+      flex-shrink: 0;
+    }
 
-#icons{
-  display:flex;
-  gap:15px;
-  font-size:18px;
-  color:#aebac1;
-}
+    #searchInput {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #202c33;
+      color: white;
+      outline: none;
+      font-size: 14px;
+    }
 
-/* Buscador */
+    #searchInput::placeholder {
+      color: #8696a0;
+    }
 
-#search{
-  padding:10px;
-  background:#111b21;
-}
+    /* LISTA */
+    #chatList {
+      flex: 1;
+      overflow-y: auto;
+    }
 
-#search input{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:8px;
-  background:#202c33;
-  color:white;
-  outline:none;
-}
+    .chat {
+      padding: 12px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #1f2c33;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      transition: background 0.15s;
+    }
 
-#search input::placeholder{
-  color:#8696a0;
-}
+    .chat:hover {
+      background: #202c33;
+    }
 
-/* Lista chats */
+    .chat.new-message {
+      background: #1a2c35;
+    }
 
-#sidebar{
-  width:100%;
-  height:100vh;
-  background:#111b21;
-  overflow-y:auto;
-}
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #2a3942;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      flex-shrink: 0;
+      color: #e9edef;
+    }
 
-.chat{
-  padding:12px 15px;
-  cursor:pointer;
-  border-bottom:1px solid #202c33;
-  display:flex;
-  gap:12px;
-  align-items:center;
-  transition:.15s;
-}
+    .chat-info {
+      flex: 1;
+      min-width: 0;
+    }
 
-.chat:hover{
-  background:#202c33;
-}
+    .chat-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
 
-.avatar{
-  width:56px;
-  height:56px;
-  border-radius:50%;
-  background:#2a3942;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-  font-size:22px;
-  flex-shrink:0;
-}
+    .chat-name {
+      font-weight: bold;
+      color: #e9edef;
+      font-size: 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
 
-.chat-info{
-  flex:1;
-  min-width:0;
-}
+    .chat-time {
+      color: #8696a0;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
 
-.chat-name{
-  font-weight:bold;
-  color:white;
-  font-size:16px;
-}
+    .chat-time.unread {
+      color: #00a884;
+    }
 
-.chat-last{
-  font-size:13px;
-  color:#8696a0;
-  margin-top:4px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
+    .chat-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-.time{
-  color:#8696a0;
-  font-size:12px;
-}
+    .chat-last {
+      font-size: 13px;
+      color: #8696a0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
 
-</style>
+    .badge {
+      background: #00a884;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-weight: bold;
+    }
 
+    /* Estado vacío */
+    #emptyState {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: #8696a0;
+      gap: 12px;
+    }
+
+    #emptyState .icon {
+      font-size: 48px;
+    }
+
+    /* Scrollbar */
+    #chatList::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #chatList::-webkit-scrollbar-thumb {
+      background: #374045;
+      border-radius: 4px;
+    }
+
+  </style>
 </head>
 
 <body>
 
-<div id="sidebar">
-
   <div id="topbar">
-
-    <div id="title">
-      Chats
-    </div>
-
+    <div id="title">Proyecto G</div>
     <div id="icons">
-      📷
-      🔍
-      ⋮
+      <span>🔍</span>
+      <span>⋮</span>
     </div>
-
   </div>
 
   <div id="search">
-
     <input
       type="text"
       id="searchInput"
       placeholder="Buscar chat..."
+      autocomplete="off"
     >
-
   </div>
 
-  <div id="chatList"></div>
+  <div id="chatList">
+    <div id="emptyState">
+      <div class="icon">💬</div>
+      <div>Sin chats aún</div>
+    </div>
+  </div>
 
-</div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
 
-<script src="/socket.io/socket.io.js"></script>
+    const socket = io()
 
-<!-- =========================
-      JAVASCRIPT
-========================= -->
+    // chatId → { unread, lastMessage, name }
+    const chatState = {}
 
-<script>
+    // ========================
+    // RENDER LISTA COMPLETA
+    // ========================
+    function renderChats(chats, filter = "") {
+      const container = document.getElementById("chatList")
+      const emptyState = document.getElementById("emptyState")
 
-const socket = io()
+      container.innerHTML = ""
+      container.appendChild(emptyState)
 
-async function loadChats() {
-
-  const res = await fetch("/chats")
-  const chats = await res.json()
-
-  const chatList =
-    document.getElementById("chatList")
-
-  chatList.innerHTML = ""
-
-  Object.entries(chats)
-
-  .sort((a, b) => {
-
-    const ultimoA =
-      a[1].messages?.[
-        a[1].messages.length - 1
-      ]?.timestamp || 0
-
-    const ultimoB =
-      b[1].messages?.[
-        b[1].messages.length - 1
-      ]?.timestamp || 0
-
-    return ultimoB - ultimoA
-
-  })
-
-  .forEach(([chatId, chatData]) => {
-
-    const div =
-      document.createElement("div")
-
-    div.className = "chat"
-
-    const ultimoMensaje =
-      chatData.messages?.[
-        chatData.messages.length - 1
-      ]
-
-    const hora = ultimoMensaje
-      ? new Date(
-          ultimoMensaje.timestamp
-        ).toLocaleTimeString([], {
-          hour:"2-digit",
-          minute:"2-digit"
+      const entries = Object.entries(chats)
+        .filter(([chatId, data]) => {
+          if (!filter) return true
+          const name = (data.name || chatId).toLowerCase()
+          return name.includes(filter.toLowerCase())
         })
-      : ""
+        .sort((a, b) => {
+          const tA = a[1].messages?.at(-1)?.timestamp || 0
+          const tB = b[1].messages?.at(-1)?.timestamp || 0
+          return tB - tA
+        })
 
-    div.innerHTML = `
-      <div class="avatar">
-        ${(chatData.name || chatId)
-          .charAt(0)
-          .toUpperCase()}
-      </div>
+      if (entries.length === 0) {
+        emptyState.style.display = "flex"
+        return
+      }
 
-      <div class="chat-info">
+      emptyState.style.display = "none"
 
-        <div style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-        ">
-
-          <div class="chat-name">
-            ${chatData.name || chatId}
-          </div>
-
-          <div style="
-            color:#8696a0;
-            font-size:12px;
-          ">
-            ${hora}
-          </div>
-
-        </div>
-
-        <div class="chat-last">
-          ${ultimoMensaje?.senderName || ""}
-          ${ultimoMensaje?.senderName ? ":" : ""}
-          ${ultimoMensaje?.text || ""}
-        </div>
-
-      </div>
-    `
-
-    div.onclick = () => {
-
-      location.href =
-        "/chat.html?id=" +
-        encodeURIComponent(chatId)
-
+      entries.forEach(([chatId, data]) => {
+        container.appendChild(buildChatItem(chatId, data))
+      })
     }
 
-    chatList.appendChild(div)
+    // ========================
+    // CONSTRUIR ITEM DE CHAT
+    // ========================
+    function buildChatItem(chatId, data) {
+      const div = document.createElement("div")
+      div.className = "chat"
+      div.dataset.chatId = chatId
 
-  })
+      const last = data.messages?.at(-1)
+      const state = chatState[chatId] || {}
+      const unread = state.unread || 0
 
-}
+      const time = last
+        ? new Date(last.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        : ""
 
-socket.on("new_message", async () => {
+      const lastText = last
+        ? (last.fromMe ? "Tú: " : "") + (last.content || "")
+        : "Sin mensajes"
 
-  await loadChats()
+      const name = data.name || chatId
+      const initial = name.charAt(0).toUpperCase()
 
-})
+      if (unread > 0) div.classList.add("new-message")
 
-loadChats()
+      div.innerHTML = `
+        <div class="avatar">${initial}</div>
+        <div class="chat-info">
+          <div class="chat-top">
+            <div class="chat-name">${name}</div>
+            <div class="chat-time ${unread > 0 ? "unread" : ""}">${time}</div>
+          </div>
+          <div class="chat-bottom">
+            <div class="chat-last">${lastText}</div>
+            ${unread > 0 ? `<div class="badge">${unread > 9 ? "9+" : unread}</div>` : ""}
+          </div>
+        </div>
+      `
 
-</script>
+      div.onclick = () => {
+        // Limpiar badge al abrir
+        if (chatState[chatId]) chatState[chatId].unread = 0
+        div.classList.remove("new-message")
+        div.querySelector(".badge")?.remove()
+        const timeEl = div.querySelector(".chat-time")
+        if (timeEl) timeEl.classList.remove("unread")
 
+        location.href = "/chat.html?id=" + encodeURIComponent(chatId)
+      }
+
+      return div
+    }
+
+    // ========================
+    // ACTUALIZAR UN CHAT
+    // ========================
+    function updateChatItem(chatId, name, lastMessage) {
+      // Actualizar estado
+      if (!chatState[chatId]) chatState[chatId] = { unread: 0 }
+      if (!lastMessage.fromMe) {
+        chatState[chatId].unread = (chatState[chatId].unread || 0) + 1
+      }
+      chatState[chatId].lastMessage = lastMessage
+
+      // Re-render solo ese item si existe, sino recargar lista
+      const existing = document.querySelector(`[data-chat-id="${CSS.escape(chatId)}"]`)
+
+      const data = {
+        name,
+        messages: [lastMessage]
+      }
+
+      if (existing) {
+        const newItem = buildChatItem(chatId, data)
+        existing.replaceWith(newItem)
+      } else {
+        // Chat nuevo — recargar lista completa
+        loadChats()
+      }
+    }
+
+    // ========================
+    // CARGAR CHATS
+    // ========================
+    let allChats = {}
+
+    async function loadChats() {
+      const res = await fetch("/chats")
+      allChats = await res.json()
+      const filter = document.getElementById("searchInput").value
+      renderChats(allChats, filter)
+    }
+
+    // ========================
+    // BUSCADOR
+    // ========================
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      renderChats(allChats, e.target.value)
+    })
+
+    // ========================
+    // TIEMPO REAL
+    // ========================
+    socket.on("chat_updated", ({ chatId, name, lastMessage }) => {
+      // Actualizar datos locales
+      if (allChats[chatId]) {
+        allChats[chatId].name = name
+        if (!allChats[chatId].messages) allChats[chatId].messages = []
+        allChats[chatId].messages.push(lastMessage)
+      } else {
+        allChats[chatId] = { name, messages: [lastMessage] }
+      }
+
+      updateChatItem(chatId, name, lastMessage)
+    })
+
+    // ========================
+    // INIT
+    // ========================
+    loadChats()
+
+  </script>
 </body>
 </html>
