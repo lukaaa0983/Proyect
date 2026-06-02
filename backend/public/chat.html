@@ -3,143 +3,400 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat</title>
+  <title>Proyecto G</title>
   <style>
+
+    :root {
+      --gold: #c9a84c;
+      --gold-light: #e2c97e;
+      --gold-dim: #7a6230;
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --surface3: #222222;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --text-dim: #888888;
+      --sent: #1a2a1a;
+      --sent-border: #2a4a2a;
+      --radius: 14px;
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       height: 100vh;
-      background: #0b141a;
-      color: white;
+      height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    /* HEADER */
+    /* ── HEADER ── */
     #header {
-      background: #202c33;
-      padding: 12px 15px;
+      background: var(--surface);
+      padding: 12px 14px;
       display: flex;
       align-items: center;
       gap: 12px;
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
 
     #back {
-      cursor: pointer;
-      font-size: 20px;
-      color: #aebac1;
-    }
-
-    #avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: #2a3942;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--gold);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    #back:active { background: var(--surface3); }
+
+    #avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--surface3), var(--surface2));
+      border: 1.5px solid var(--gold-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
       font-size: 18px;
+      color: var(--gold-light);
       flex-shrink: 0;
     }
 
-    #chatName {
-      font-weight: bold;
-      font-size: 16px;
+    #header-info {
+      flex: 1;
+      min-width: 0;
     }
 
-    /* MENSAJES */
+    #chatName {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #chatStatus {
+      font-size: 11px;
+      color: var(--gold-dim);
+      margin-top: 1px;
+    }
+
+    #header-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .hdr-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--text-dim);
+      transition: all 0.2s;
+    }
+
+    .hdr-btn:active {
+      background: var(--surface3);
+      color: var(--gold);
+    }
+
+    /* ── MENSAJES ── */
     #messages {
       flex: 1;
       overflow-y: auto;
-      padding: 15px;
+      padding: 14px 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
+      overscroll-behavior: contain;
     }
 
-    .message {
-      max-width: 75%;
-      padding: 8px 12px;
-      border-radius: 8px;
+    #messages::-webkit-scrollbar { width: 3px; }
+    #messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    /* Fecha separadora */
+    .date-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .date-divider::before,
+    .date-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .date-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 3px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* Burbuja */
+    .msg-wrap {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+    }
+
+    .msg-wrap.sent {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .msg-wrap.received {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .msg-sender-label {
+      font-size: 11px;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 3px;
+      padding-left: 4px;
+    }
+
+    .bubble {
+      padding: 9px 12px;
+      border-radius: 14px;
       font-size: 14px;
-      line-height: 1.4;
+      line-height: 1.5;
       word-break: break-word;
       position: relative;
     }
 
-    /* Mensaje recibido (izquierda) */
-    .message.received {
-      background: #202c33;
-      align-self: flex-start;
-      border-top-left-radius: 2px;
+    .bubble.sent {
+      background: var(--sent);
+      border: 1px solid var(--sent-border);
+      border-bottom-right-radius: 4px;
+      color: var(--text);
     }
 
-    /* Mensaje enviado desde panel (derecha) */
-    .message.sent {
-      background: #005c4b;
-      align-self: flex-end;
-      border-top-right-radius: 2px;
+    .bubble.received {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
     }
 
-    .msg-sender {
-      color: #53bdeb;
-      font-weight: bold;
-      font-size: 12px;
-      margin-bottom: 3px;
-    }
-
-    .msg-sender.sent {
-      color: #25d366;
-    }
-
-    .msg-content {
-      color: #e9edef;
+    .bubble.sent .msg-time {
+      color: var(--gold-dim);
     }
 
     .msg-time {
-      font-size: 11px;
-      color: #8696a0;
+      font-size: 10px;
+      color: var(--text-dim);
       text-align: right;
       margin-top: 4px;
     }
 
-    /* INPUT */
-    #inputArea {
-      background: #202c33;
-      padding: 10px 15px;
-      display: flex;
-      gap: 10px;
+    /* Multimedia */
+    .bubble img {
+      max-width: 100%;
+      max-height: 280px;
+      border-radius: 10px;
+      display: block;
+      cursor: pointer;
+      object-fit: cover;
+    }
+
+    .bubble audio {
+      width: 100%;
+      margin-top: 4px;
+      accent-color: var(--gold);
+    }
+
+    .multimedia-tag {
+      display: inline-flex;
       align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* Reply quote */
+    .reply-quote {
+      border-left: 3px solid var(--gold);
+      padding: 5px 8px;
+      margin-bottom: 6px;
+      background: rgba(201,168,76,0.07);
+      border-radius: 0 8px 8px 0;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ── LIGHTBOX ── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #lightbox.open {
+      display: flex;
+    }
+
+    #lightbox img {
+      max-width: 95vw;
+      max-height: 80vh;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
+    #lightbox-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* ── REPLY PREVIEW ── */
+    #replyPreview {
+      display: none;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 8px 14px;
+      flex-shrink: 0;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #replyPreview.visible {
+      display: flex;
+    }
+
+    #replyPreview-text {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #replyPreview-text strong {
+      color: var(--gold);
+      display: block;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    #replyCancel {
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+    }
+
+    #replyBar {
+      width: 3px;
+      height: 36px;
+      background: var(--gold);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* ── INPUT ── */
+    #inputArea {
+      background: var(--surface);
+      padding: 10px 12px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      border-top: 1px solid var(--border);
       flex-shrink: 0;
     }
 
     #msgInput {
       flex: 1;
       padding: 10px 14px;
-      border: none;
-      border-radius: 20px;
-      background: #2a3942;
-      color: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface2);
+      color: var(--text);
       outline: none;
       font-size: 15px;
+      resize: none;
+      max-height: 120px;
+      line-height: 1.4;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    #msgInput:focus {
+      border-color: var(--gold-dim);
     }
 
     #msgInput::placeholder {
-      color: #8696a0;
+      color: var(--text-dim);
     }
 
     #sendBtn {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: #00a884;
+      width: 44px;
+      height: 44px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
       border: none;
       cursor: pointer;
       display: flex;
@@ -147,143 +404,350 @@
       justify-content: center;
       font-size: 18px;
       flex-shrink: 0;
-      transition: background 0.2s;
+      transition: opacity 0.2s;
     }
 
-    #sendBtn:hover {
-      background: #008f6f;
+    #sendBtn:active { opacity: 0.8; }
+
+    /* Nuevo mensaje indicator */
+    #newMsgIndicator {
+      display: none;
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold);
+      color: #000;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 10;
+      white-space: nowrap;
     }
 
-    /* Scrollbar */
-    #messages::-webkit-scrollbar {
-      width: 5px;
+    #newMsgIndicator.visible {
+      display: block;
     }
 
-    #messages::-webkit-scrollbar-thumb {
-      background: #374045;
-      border-radius: 4px;
-    }
   </style>
 </head>
 
 <body>
 
+  <!-- HEADER -->
   <div id="header">
-    <span id="back">←</span>
+    <div id="back" onclick="location.href='/'">←</div>
     <div id="avatar">?</div>
-    <div>
+    <div id="header-info">
       <div id="chatName">Cargando...</div>
+      <div id="chatStatus">WhatsApp</div>
+    </div>
+    <div id="header-actions">
+      <div class="hdr-btn" onclick="scrollToBottom()" title="Ir al final">↓</div>
     </div>
   </div>
 
-  <div id="messages"></div>
+  <!-- MENSAJES -->
+  <div id="messages" style="position:relative"></div>
 
+  <!-- NUEVO MENSAJE -->
+  <div id="newMsgIndicator" onclick="scrollToBottom()">
+    ↓ Nuevo mensaje
+  </div>
+
+  <!-- REPLY PREVIEW -->
+  <div id="replyPreview">
+    <div id="replyBar"></div>
+    <div id="replyPreview-text">
+      <strong id="replyPreview-name"></strong>
+      <span id="replyPreview-content"></span>
+    </div>
+    <div id="replyCancel" onclick="cancelReply()">✕</div>
+  </div>
+
+  <!-- INPUT -->
   <div id="inputArea">
-    <input
-      type="text"
+    <textarea
       id="msgInput"
       placeholder="Escribe un mensaje..."
+      rows="1"
       autocomplete="off"
-    >
-    <button id="sendBtn">➤</button>
+    ></textarea>
+    <button id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <div id="lightbox">
+    <div id="lightbox-close" onclick="closeLightbox()">✕</div>
+    <img id="lightbox-img" src="" alt="">
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
 
     const params = new URLSearchParams(location.search)
-    const chatId = params.get("id")
-
-    if (!chatId) location.href = "/"
+    const chatId = params.get('id')
+    if (!chatId) location.href = '/'
 
     const socket = io()
-    const messagesContainer = document.getElementById("messages")
+    const messagesEl = document.getElementById('messages')
 
-    // Unirse al room de este chat
-    socket.emit("join_chat", chatId)
+    let replyTo = null
+    let lastDate = null
+    let isAtBottom = true
+
+    socket.emit('join_chat', chatId)
 
     // ========================
-    // RENDER DE UN MENSAJE
+    // SCROLL DETECTION
     // ========================
-    function renderMessage(msg) {
-      const div = document.createElement("div")
-      const isSent = msg.fromMe === true
-      div.className = `message ${isSent ? "sent" : "received"}`
+    messagesEl.addEventListener('scroll', () => {
+      const threshold = 80
+      const atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < threshold
+      isAtBottom = atBottom
+      if (atBottom) {
+        document.getElementById('newMsgIndicator').classList.remove('visible')
+      }
+    })
 
-      const time = new Date(msg.timestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
+    // ========================
+    // FECHA SEPARADORA
+    // ========================
+    function getDateLabel(ts) {
+      const date = new Date(ts)
+      const now = new Date()
+      const isToday = date.toDateString() === now.toDateString()
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
 
-      div.innerHTML = `
-        ${!isSent ? `<div class="msg-sender">${msg.senderName || "Usuario"}</div>` : ""}
-        <div class="msg-content">${msg.content || ""}</div>
-        <div class="msg-time">${time}</div>
-      `
+      if (isToday) return 'Hoy'
+      if (date.toDateString() === yesterday.toDateString()) return 'Ayer'
+      return date.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })
+    }
 
-      messagesContainer.appendChild(div)
+    function maybeAddDateDivider(ts) {
+      const label = getDateLabel(ts)
+      if (label === lastDate) return
+      lastDate = label
+
+      const div = document.createElement('div')
+      div.className = 'date-divider'
+      div.innerHTML = `<div class="date-label">${label}</div>`
+      messagesEl.appendChild(div)
     }
 
     // ========================
-    // SCROLL AL ÚLTIMO MENSAJE
+    // RENDER MULTIMEDIA
     // ========================
-    function scrollToBottom() {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight
+    function renderMedia(msg) {
+      if (msg.type === 'image' && msg.mediaUrl) {
+        return `<img src="${msg.mediaUrl}" alt="imagen" onclick="openLightbox('${msg.mediaUrl}')" loading="lazy">
+                ${msg.content ? `<div style="margin-top:6px">${msg.content}</div>` : ''}`
+      }
+      if (msg.type === 'audio' && msg.mediaUrl) {
+        return `<audio controls src="${msg.mediaUrl}"></audio>`
+      }
+      if (msg.type === 'video' && msg.mediaUrl) {
+        return `<video controls style="max-width:100%;border-radius:10px;max-height:280px" src="${msg.mediaUrl}"></video>`
+      }
+      if (msg.type === 'document' && msg.mediaUrl) {
+        return `<div class="multimedia-tag">📄 <a href="${msg.mediaUrl}" target="_blank" style="color:var(--gold-light);text-decoration:none">${msg.fileName || 'Documento'}</a></div>`
+      }
+      if (msg.type === 'sticker' && msg.mediaUrl) {
+        return `<img src="${msg.mediaUrl}" alt="sticker" style="max-width:120px;background:transparent;border:none">`
+      }
+
+      // Fallback multimedia sin URL
+      const icons = { image:'🖼️', audio:'🎵', video:'🎬', document:'📄', sticker:'🎭' }
+      if (msg.type !== 'text' && msg.type !== 'unknown') {
+        return `<div class="multimedia-tag">${icons[msg.type] || '📎'} ${msg.content || msg.type}</div>`
+      }
+
+      return msg.content || ''
+    }
+
+    // ========================
+    // RENDER MENSAJE
+    // ========================
+    function renderMessage(msg, animate = false) {
+      maybeAddDateDivider(msg.timestamp)
+
+      const isSent = msg.fromMe === true
+      const wrap = document.createElement('div')
+      wrap.className = `msg-wrap ${isSent ? 'sent' : 'received'}`
+
+      if (animate) {
+        wrap.style.opacity = '0'
+        wrap.style.transform = 'translateY(8px)'
+        wrap.style.transition = 'opacity 0.2s, transform 0.2s'
+      }
+
+      const time = new Date(msg.timestamp).toLocaleTimeString([], {
+        hour: '2-digit', minute: '2-digit'
+      })
+
+      const senderLabel = (!isSent && msg.senderName)
+        ? `<div class="msg-sender-label">${msg.senderName}</div>`
+        : ''
+
+      const replyHTML = msg.replyTo
+        ? `<div class="reply-quote"><b>${msg.replyTo.senderName || 'Tú'}:</b> ${msg.replyTo.content || '[Multimedia]'}</div>`
+        : ''
+
+      const mediaHTML = renderMedia(msg)
+
+      wrap.innerHTML = `
+        ${senderLabel}
+        <div class="bubble ${isSent ? 'sent' : 'received'}">
+          ${replyHTML}
+          ${mediaHTML}
+          <div class="msg-time">${time}</div>
+        </div>
+      `
+
+      // Long press para responder
+      let pressTimer
+      wrap.addEventListener('touchstart', () => {
+        pressTimer = setTimeout(() => setReply(msg), 500)
+      })
+      wrap.addEventListener('touchend', () => clearTimeout(pressTimer))
+      wrap.addEventListener('mousedown', () => {
+        pressTimer = setTimeout(() => setReply(msg), 600)
+      })
+      wrap.addEventListener('mouseup', () => clearTimeout(pressTimer))
+
+      messagesEl.appendChild(wrap)
+
+      if (animate) {
+        requestAnimationFrame(() => {
+          wrap.style.opacity = '1'
+          wrap.style.transform = 'translateY(0)'
+        })
+      }
+    }
+
+    // ========================
+    // REPLY
+    // ========================
+    function setReply(msg) {
+      replyTo = msg
+      document.getElementById('replyPreview').classList.add('visible')
+      document.getElementById('replyPreview-name').textContent = msg.fromMe ? 'Tú' : (msg.senderName || 'Usuario')
+      document.getElementById('replyPreview-content').textContent = msg.content || '[Multimedia]'
+      document.getElementById('msgInput').focus()
+    }
+
+    function cancelReply() {
+      replyTo = null
+      document.getElementById('replyPreview').classList.remove('visible')
+    }
+
+    // ========================
+    // LIGHTBOX
+    // ========================
+    function openLightbox(url) {
+      document.getElementById('lightbox-img').src = url
+      document.getElementById('lightbox').classList.add('open')
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open')
+      document.getElementById('lightbox-img').src = ''
+    }
+
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('lightbox')) closeLightbox()
+    })
+
+    // ========================
+    // SCROLL
+    // ========================
+    function scrollToBottom(smooth = true) {
+      messagesEl.scrollTo({
+        top: messagesEl.scrollHeight,
+        behavior: smooth ? 'smooth' : 'instant'
+      })
+      document.getElementById('newMsgIndicator').classList.remove('visible')
     }
 
     // ========================
     // CARGAR HISTORIAL
     // ========================
     async function loadChat() {
-      const res = await fetch("/chat/" + encodeURIComponent(chatId))
+      const res = await fetch('/chat/' + encodeURIComponent(chatId))
       const data = await res.json()
 
-      // Header
       const name = data.name || chatId
-      document.getElementById("chatName").innerText = name
-      document.getElementById("avatar").innerText = name.charAt(0).toUpperCase()
+      document.getElementById('chatName').textContent = name
+      document.getElementById('avatar').textContent = name.charAt(0).toUpperCase()
+      document.getElementById('chatStatus').textContent =
+        chatId.endsWith('@g.us') ? 'Grupo de WhatsApp' : 'WhatsApp'
       document.title = name
 
-      // Mensajes
-      messagesContainer.innerHTML = ""
+      messagesEl.innerHTML = ''
+      lastDate = null
+
       const messages = data.messages || []
-      messages.forEach(renderMessage)
-      scrollToBottom()
+      messages.forEach(msg => renderMessage(msg, false))
+      scrollToBottom(false)
     }
 
     // ========================
-    // MENSAJE EN TIEMPO REAL
+    // TIEMPO REAL
     // ========================
-    socket.on("receive_message", (msg) => {
-      renderMessage(msg)
-      scrollToBottom()
+    socket.on('receive_message', (msg) => {
+      renderMessage(msg, true)
+
+      if (isAtBottom) {
+        scrollToBottom()
+      } else {
+        document.getElementById('newMsgIndicator').classList.add('visible')
+      }
+    })
+
+    // ========================
+    // AUTO-RESIZE TEXTAREA
+    // ========================
+    const input = document.getElementById('msgInput')
+    input.addEventListener('input', () => {
+      input.style.height = 'auto'
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px'
+    })
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        sendMessage()
+      }
     })
 
     // ========================
     // ENVIAR MENSAJE
     // ========================
     function sendMessage() {
-      const input = document.getElementById("msgInput")
       const content = input.value.trim()
       if (!content) return
 
-      socket.emit("send_message", {
+      const payload = {
         chatId,
         content,
-        senderName: "Panel"
-      })
+        senderName: 'Panel'
+      }
 
-      input.value = ""
-    }
+      if (replyTo) {
+        payload.replyTo = {
+          senderName: replyTo.fromMe ? 'Tú' : (replyTo.senderName || 'Usuario'),
+          content: replyTo.content || '[Multimedia]'
+        }
+        cancelReply()
+      }
 
-    document.getElementById("sendBtn").onclick = sendMessage
+      socket.emit('send_message', payload)
 
-    document.getElementById("msgInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage()
-    })
-
-    document.getElementById("back").onclick = () => {
-      location.href = "/"
+      input.value = ''
+      input.style.height = 'auto'
     }
 
     loadChat()

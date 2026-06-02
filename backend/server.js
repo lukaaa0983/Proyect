@@ -1,11 +1,16 @@
-const express = require("express")
-const http = require("http")
-const { Server } = require("socket.io")
-const cors = require("cors")
-const fs = require("fs")
+import express from "express"
+import { createServer } from "http"
+import { Server } from "socket.io"
+import cors from "cors"
+import fs from "fs"
+import { fileURLToPath } from "url"
+import path from "path"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
-const server = http.createServer(app)
+const server = createServer(app)
 
 const io = new Server(server, {
   cors: { origin: "*" }
@@ -16,7 +21,7 @@ global.io = io
 // ========================
 // 📦 CARGA DE CHATS
 // ========================
-const DATA_PATH = "./data/chats.json"
+const DATA_PATH = path.join(__dirname, "./data/chats.json")
 const MAX_MESSAGES = 1000
 
 let chats = {}
@@ -32,12 +37,24 @@ function saveChats() {
 }
 
 app.use(cors())
-app.use(express.json())
-app.use(express.static("public"))
+app.use(express.json({ limit: "50mb" }))
+app.use(express.urlencoded({ limit: "50mb", extended: true }))
+app.use(express.static(path.join(__dirname, "public")))
 
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html")
-})
+// ========================
+// 🤖 IMPORTAR BOT
+// ========================
+let botModule = null
+
+async function loadBot() {
+  try {
+    botModule = await import("../bot/index.js")
+    console.log("✅ Bot vinculado al servidor")
+  } catch (e) {
+    console.log("⚠️  Bot no disponible:", e.message)
+    console.log("   El panel funcionará pero no enviará a WhatsApp real")
+  }
+}
 
 // ========================
 // 🔌 SOCKET.IO — ROOMS
@@ -45,16 +62,12 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   console.log("Usuario conectado:", socket.id)
 
-  // El frontend se une al room de un chat específico
   socket.on("join_chat", (chatId) => {
     socket.join(chatId)
-    console.log(`Socket ${socket.id} se unió al room: ${chatId}`)
   })
 
-  // Mensaje enviado DESDE el panel web hacia WhatsApp
-  socket.on("send_message", (data) => {
-    const { chatId, content, senderName } = data
-
+  socket.on("send_message", async (data) => {
+    const { chatId, content, senderName, replyTo } = data
     if (!chatId || !content) return
 
     const message = {
@@ -63,29 +76,37 @@ io.on("connection", (socket) => {
       senderName: senderName || "Panel",
       senderId: "panel",
       fromMe: true,
+      replyTo: replyTo || null,
       timestamp: Date.now()
     }
 
-    // Guardar en JSON
     if (!chats[chatId]) {
       chats[chatId] = { name: chatId, messages: [] }
     }
-
     chats[chatId].messages.push(message)
     if (chats[chatId].messages.length > MAX_MESSAGES) {
       chats[chatId].messages.shift()
     }
     saveChats()
 
-    // Emitir solo al room de ese chat
     io.to(chatId).emit("receive_message", message)
-
-    // Actualizar lista de chats en el index
     io.emit("chat_updated", {
       chatId,
       name: chats[chatId].name,
       lastMessage: message
     })
+
+    // 📲 ENVIAR A WHATSAPP REAL
+    try {
+      if (botModule?.sendToWhatsApp) {
+        await botModule.sendToWhatsApp(chatId, content, replyTo || null)
+        console.log(`📤 Enviado a WhatsApp: [${chatId}] ${content}`)
+      } else {
+        console.log("⚠️  Bot no disponible, mensaje solo guardado en panel")
+      }
+    } catch (e) {
+      console.log("❌ Error enviando a WhatsApp:", e.message)
+    }
   })
 
   socket.on("disconnect", () => {
@@ -97,7 +118,11 @@ io.on("connection", (socket) => {
 // 💾 RECIBIR MENSAJE DEL BOT
 // ========================
 app.post("/message", (req, res) => {
-  const { from, type, text, content, pushName, senderName, senderId, isGroup } = req.body
+  const {
+    from, type, text, content, mediaUrl,
+    fileName, pushName, senderName,
+    senderId, isGroup, fromMe, waMessageKey
+  } = req.body
 
   if (!from) return res.status(400).json({ error: "Falta 'from'" })
 
@@ -107,33 +132,30 @@ app.post("/message", (req, res) => {
     chats[from] = { name: pushName || from, messages: [] }
   }
 
-  // Actualizar nombre si llega nuevo pushName
   if (pushName && pushName !== from) {
     chats[from].name = pushName
   }
 
   const message = {
-    type: type || "text",
-    content: msgContent,
-    senderName: senderName || pushName || "Desconocido",
-    senderId: senderId || from,
-    fromMe: false,
-    isGroup: isGroup || false,
-    timestamp: Date.now()
+    type:         type || "text",
+    content:      msgContent,
+    mediaUrl:     mediaUrl || null,
+    fileName:     fileName || null,
+    senderName:   senderName || pushName || "Desconocido",
+    senderId:     senderId || from,
+    fromMe:       fromMe || false,
+    isGroup:      isGroup || false,
+    waMessageKey: waMessageKey || null,
+    timestamp:    Date.now()
   }
 
   chats[from].messages.push(message)
-
   if (chats[from].messages.length > MAX_MESSAGES) {
     chats[from].messages.shift()
   }
-
   saveChats()
 
-  // 🎯 Emitir solo al room del chat correspondiente
   io.to(from).emit("receive_message", message)
-
-  // 🔔 Notificar al index que hay chat nuevo/actualizado
   io.emit("chat_updated", {
     chatId: from,
     name: chats[from].name,
@@ -144,23 +166,27 @@ app.post("/message", (req, res) => {
 })
 
 // ========================
-// 📥 OBTENER TODOS LOS CHATS
+// 📥 ENDPOINTS
 // ========================
-app.get("/chats", (req, res) => {
-  res.json(chats)
-})
+app.get("/chats", (req, res) => res.json(chats))
 
-// ========================
-// 📥 CHAT POR ID
-// ========================
 app.get("/chat/:id", (req, res) => {
   const id = req.params.id
   res.json(chats[id] || { name: id, messages: [] })
 })
 
+app.get("/status", (req, res) => {
+  res.json({
+    status: "ok",
+    chats: Object.keys(chats).length,
+    bot: botModule?.getConn?.() ? "conectado" : "desconectado"
+  })
+})
+
 // ========================
-// 🚀 INICIAR SERVIDOR
+// 🚀 ARRANCAR
 // ========================
-server.listen(3000, () => {
+server.listen(3000, async () => {
   console.log("✅ Servidor corriendo en http://localhost:3000")
+  await loadBot()
 })
