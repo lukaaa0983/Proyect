@@ -18,8 +18,7 @@ global.io = io
 const DATA_PATH    = path.join(__dirname, "./data/chats.json")
 const MAX_MESSAGES = 1000
 
-let chats     = {}
-let presences = {} // { chatId: { status, lastSeen } }
+let chats = {}
 
 try { chats = JSON.parse(fs.readFileSync(DATA_PATH, "utf8")) } catch { chats = {} }
 
@@ -40,6 +39,7 @@ let botModule = null
 async function loadBot() {
   try {
     botModule = await import("../bot/index.js")
+    await botModule.start()
     console.log("✅ Bot vinculado al servidor")
   } catch (e) {
     console.log("⚠️  Bot no disponible:", e.message)
@@ -112,7 +112,6 @@ app.post("/message", (req, res) => {
   }
 
   const msgContent = content || text || ""
-
   if (!chats[from]) chats[from] = { name: pushName || from, messages: [] }
   if (pushName && pushName !== from) chats[from].name = pushName
 
@@ -142,32 +141,11 @@ app.post("/message", (req, res) => {
 })
 
 // ========================
-// 👤 PRESENCIA
-// ========================
-app.post("/presence", (req, res) => {
-  const { chatId, participant, status, lastSeen } = req.body
-  if (!chatId || !status) return res.json({ success: true })
-
-  // Guardar en memoria
-  presences[chatId] = { status, lastSeen, updatedAt: Date.now() }
-
-  // Emitir al frontend en tiempo real
-  io.to(chatId).emit('presence_update', { chatId, status, lastSeen })
-
-  // También emitir al index para mostrar en lista
-  io.emit('presence_update', { chatId, status, lastSeen })
-
-  res.json({ success: true })
-})
-
-// ========================
 // 📥 ENDPOINTS
 // ========================
 app.get("/chats",    (req, res) => res.json(chats))
 app.get("/chat/:id", (req, res) => res.json(chats[req.params.id] || { name: req.params.id, messages: [] }))
-app.get("/presence", (req, res) => res.json(presences))
-
-app.get("/status", (req, res) => res.json({
+app.get("/status",   (req, res) => res.json({
   status: "ok",
   chats:  Object.keys(chats).length,
   bot:    botModule?.getConn?.() ? "conectado" : "desconectado"

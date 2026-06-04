@@ -69,7 +69,6 @@ function renderMessage(msg, animate = false) {
   timeEl.className = 'msg-time'
   timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-  // Si ya estaba borrado al cargar el historial
   if (msg.revoked) {
     const icon = document.createElement('span')
     icon.className = 'revoked-icon'
@@ -226,4 +225,5 @@ async function loadChat() {
   messages.forEach(msg => renderMessage(msg, false))
   scrollToBottom(false)
 }
+
 loadChat()
