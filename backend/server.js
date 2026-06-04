@@ -7,30 +7,21 @@ import { fileURLToPath } from "url"
 import path from "path"
 
 const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __dirname  = path.dirname(__filename)
 
-const app = express()
+const app    = express()
 const server = createServer(app)
-
-const io = new Server(server, {
-  cors: { origin: "*" }
-})
+const io     = new Server(server, { cors: { origin: "*" } })
 
 global.io = io
 
-// ========================
-// 📦 CARGA DE CHATS
-// ========================
-const DATA_PATH = path.join(__dirname, "./data/chats.json")
+const DATA_PATH    = path.join(__dirname, "./data/chats.json")
 const MAX_MESSAGES = 1000
 
-let chats = {}
+let chats     = {}
+let presences = {} // { chatId: { status, lastSeen } }
 
-try {
-  chats = JSON.parse(fs.readFileSync(DATA_PATH, "utf8"))
-} catch {
-  chats = {}
-}
+try { chats = JSON.parse(fs.readFileSync(DATA_PATH, "utf8")) } catch { chats = {} }
 
 function saveChats() {
   fs.writeFileSync(DATA_PATH, JSON.stringify(chats, null, 2))
@@ -52,66 +43,45 @@ async function loadBot() {
     console.log("✅ Bot vinculado al servidor")
   } catch (e) {
     console.log("⚠️  Bot no disponible:", e.message)
-    console.log("   El panel funcionará pero no enviará a WhatsApp real")
   }
 }
 
 // ========================
-// 🔌 SOCKET.IO — ROOMS
+// 🔌 SOCKET.IO
 // ========================
 io.on("connection", (socket) => {
-  console.log("Usuario conectado:", socket.id)
-
-  socket.on("join_chat", (chatId) => {
-    socket.join(chatId)
-  })
+  socket.on("join_chat", (chatId) => socket.join(chatId))
 
   socket.on("send_message", async (data) => {
     const { chatId, content, senderName, replyTo } = data
     if (!chatId || !content) return
 
     const message = {
-      type: "text",
-      content,
+      type: "text", content,
       senderName: senderName || "Panel",
-      senderId: "panel",
-      fromMe: true,
+      senderId: "panel", fromMe: true,
       replyTo: replyTo || null,
       timestamp: Date.now()
     }
 
-    if (!chats[chatId]) {
-      chats[chatId] = { name: chatId, messages: [] }
-    }
+    if (!chats[chatId]) chats[chatId] = { name: chatId, messages: [] }
     chats[chatId].messages.push(message)
-    if (chats[chatId].messages.length > MAX_MESSAGES) {
-      chats[chatId].messages.shift()
-    }
+    if (chats[chatId].messages.length > MAX_MESSAGES) chats[chatId].messages.shift()
     saveChats()
 
     io.to(chatId).emit("receive_message", message)
-    io.emit("chat_updated", {
-      chatId,
-      name: chats[chatId].name,
-      lastMessage: message
-    })
+    io.emit("chat_updated", { chatId, name: chats[chatId].name, lastMessage: message })
 
-    // 📲 ENVIAR A WHATSAPP REAL
     try {
       if (botModule?.sendToWhatsApp) {
         await botModule.sendToWhatsApp(chatId, content, replyTo || null)
-        console.log(`📤 Enviado a WhatsApp: [${chatId}] ${content}`)
-      } else {
-        console.log("⚠️  Bot no disponible, mensaje solo guardado en panel")
       }
     } catch (e) {
       console.log("❌ Error enviando a WhatsApp:", e.message)
     }
   })
 
-  socket.on("disconnect", () => {
-    console.log("Usuario desconectado:", socket.id)
-  })
+  socket.on("disconnect", () => {})
 })
 
 // ========================
@@ -119,22 +89,32 @@ io.on("connection", (socket) => {
 // ========================
 app.post("/message", (req, res) => {
   const {
-    from, type, text, content, mediaUrl,
-    fileName, pushName, senderName,
-    senderId, isGroup, fromMe, waMessageKey
+    from, type, text, content, mediaUrl, fileName,
+    pushName, senderName, senderId, isGroup,
+    fromMe, waMessageKey, isViewOnce, deletedId
   } = req.body
 
   if (!from) return res.status(400).json({ error: "Falta 'from'" })
 
+  // ── REVOKE ──
+  if (type === 'revoke') {
+    if (chats[from]?.messages && deletedId) {
+      const msg = chats[from].messages.find(m => m.waMessageKey?.id === deletedId)
+      if (msg) {
+        msg.revoked         = true
+        msg.originalContent = msg.content
+        saveChats()
+        io.to(from).emit('message_revoked', { chatId: from, deletedId })
+        console.log(`🗑️ Borrado en panel: ${deletedId}`)
+      }
+    }
+    return res.json({ success: true })
+  }
+
   const msgContent = content || text || ""
 
-  if (!chats[from]) {
-    chats[from] = { name: pushName || from, messages: [] }
-  }
-
-  if (pushName && pushName !== from) {
-    chats[from].name = pushName
-  }
+  if (!chats[from]) chats[from] = { name: pushName || from, messages: [] }
+  if (pushName && pushName !== from) chats[from].name = pushName
 
   const message = {
     type:         type || "text",
@@ -145,22 +125,37 @@ app.post("/message", (req, res) => {
     senderId:     senderId || from,
     fromMe:       fromMe || false,
     isGroup:      isGroup || false,
+    isViewOnce:   isViewOnce || false,
+    revoked:      false,
     waMessageKey: waMessageKey || null,
     timestamp:    Date.now()
   }
 
   chats[from].messages.push(message)
-  if (chats[from].messages.length > MAX_MESSAGES) {
-    chats[from].messages.shift()
-  }
+  if (chats[from].messages.length > MAX_MESSAGES) chats[from].messages.shift()
   saveChats()
 
   io.to(from).emit("receive_message", message)
-  io.emit("chat_updated", {
-    chatId: from,
-    name: chats[from].name,
-    lastMessage: message
-  })
+  io.emit("chat_updated", { chatId: from, name: chats[from].name, lastMessage: message })
+
+  res.json({ success: true })
+})
+
+// ========================
+// 👤 PRESENCIA
+// ========================
+app.post("/presence", (req, res) => {
+  const { chatId, participant, status, lastSeen } = req.body
+  if (!chatId || !status) return res.json({ success: true })
+
+  // Guardar en memoria
+  presences[chatId] = { status, lastSeen, updatedAt: Date.now() }
+
+  // Emitir al frontend en tiempo real
+  io.to(chatId).emit('presence_update', { chatId, status, lastSeen })
+
+  // También emitir al index para mostrar en lista
+  io.emit('presence_update', { chatId, status, lastSeen })
 
   res.json({ success: true })
 })
@@ -168,20 +163,15 @@ app.post("/message", (req, res) => {
 // ========================
 // 📥 ENDPOINTS
 // ========================
-app.get("/chats", (req, res) => res.json(chats))
+app.get("/chats",    (req, res) => res.json(chats))
+app.get("/chat/:id", (req, res) => res.json(chats[req.params.id] || { name: req.params.id, messages: [] }))
+app.get("/presence", (req, res) => res.json(presences))
 
-app.get("/chat/:id", (req, res) => {
-  const id = req.params.id
-  res.json(chats[id] || { name: id, messages: [] })
-})
-
-app.get("/status", (req, res) => {
-  res.json({
-    status: "ok",
-    chats: Object.keys(chats).length,
-    bot: botModule?.getConn?.() ? "conectado" : "desconectado"
-  })
-})
+app.get("/status", (req, res) => res.json({
+  status: "ok",
+  chats:  Object.keys(chats).length,
+  bot:    botModule?.getConn?.() ? "conectado" : "desconectado"
+}))
 
 // ========================
 // 🚀 ARRANCAR

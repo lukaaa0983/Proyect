@@ -1,0 +1,34 @@
+:root {
+  --gold: #c9a84c;
+  --gold-light: #e2c97e;
+  --gold-dim: #7a6230;
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface2: #1a1a1a;
+  --surface3: #222222;
+  --border: #2a2a2a;
+  --text: #f0f0f0;
+  --text-dim: #888888;
+  --sent: #1a2a1a;
+  --sent-border: #2a4a2a;
+  --green: #25d366;
+  --red: #ff4444;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
