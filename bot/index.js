@@ -30,7 +30,12 @@ export function getConn() { return connGlobal; }
 export async function sendToWhatsApp(chatId, content, replyTo = null) {
     if (!connGlobal) throw new Error('Bot no conectado');
     const options = {};
-    if (replyTo?.waMessageKey) options.quoted = { key: replyTo.waMessageKey };
+    if (replyTo?.waMessageKey) {
+        options.quoted = {
+            key: replyTo.waMessageKey,
+            message: { conversation: replyTo.content || "" }
+        };
+    }
     await connGlobal.sendMessage(chatId, { text: content }, options);
 }
 

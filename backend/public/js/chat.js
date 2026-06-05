@@ -45,11 +45,24 @@ function getSenderColor(senderId) {
   return senderColors[senderId]
 }
 
+// ── Fix número: solo mostrar si es número real ──
+function formatNumber(senderId) {
+  if (!senderId) return ''
+  // Limpiar sufijos
+  const clean = senderId
+    .replace('@s.whatsapp.net', '')
+    .replace('@lid', '')
+    .replace('@g.us', '')
+    .trim()
+  // Solo mostrar si son puro números (no LID que tiene letras/guiones)
+  if (/^\d{7,15}$/.test(clean)) return '+' + clean
+  return ''
+}
+
 function renderMessage(msg, animate = false) {
   maybeAddDateDivider(msg.timestamp)
-  const isSent  = msg.fromMe === true
-  const isGroup = chatId.endsWith('@g.us')
-  const wrap    = document.createElement('div')
+  const isSent = msg.fromMe === true
+  const wrap   = document.createElement('div')
   wrap.className = `msg-wrap ${isSent ? 'sent' : 'received'}`
 
   if (msg.waMessageKey?.id) wrap.dataset.msgId = msg.waMessageKey.id
@@ -60,18 +73,21 @@ function renderMessage(msg, animate = false) {
     wrap.style.transition = 'opacity 0.25s, transform 0.25s'
   }
 
-  // Avatar
-  const avatarEl = document.createElement('div')
-  avatarEl.className = 'msg-avatar'
-  const name = msg.senderName || (isSent ? 'Tú' : '?')
-  avatarEl.textContent = name.charAt(0).toUpperCase()
-  if (isSent) avatarEl.style.borderColor = 'var(--gold-dim)'
+  // ── Avatar — solo para recibidos ──
+  if (!isSent) {
+    const avatarEl = document.createElement('div')
+    avatarEl.className = 'msg-avatar'
+    const name = msg.senderName || '?'
+    avatarEl.textContent = name.charAt(0).toUpperCase()
+    avatarEl.style.borderColor = getSenderColor(msg.senderId || msg.senderName)
+    wrap.appendChild(avatarEl)
+  }
 
-  // Columna
+  // ── Columna ──
   const col = document.createElement('div')
   col.className = 'msg-col'
 
-  // Meta (nombre + número) — solo para mensajes recibidos con nombre
+  // ── Meta: nombre + número — solo recibidos con nombre ──
   if (!isSent && msg.senderName) {
     const meta = document.createElement('div')
     meta.className = 'msg-meta'
@@ -80,24 +96,23 @@ function renderMessage(msg, animate = false) {
     nameEl.className = 'msg-meta-name'
     nameEl.textContent = msg.senderName
     nameEl.style.color = getSenderColor(msg.senderId || msg.senderName)
-
     meta.appendChild(nameEl)
 
-    if (msg.senderId && msg.senderId !== msg.senderName && msg.senderId.includes('@')) {
+    const num = formatNumber(msg.senderId)
+    if (num) {
       const numEl = document.createElement('span')
       numEl.className = 'msg-meta-number'
-      numEl.textContent = '+' + msg.senderId.replace('@s.whatsapp.net', '').replace('@lid', '')
+      numEl.textContent = num
       meta.appendChild(numEl)
     }
 
     col.appendChild(meta)
   }
 
-  // Burbuja
+  // ── Burbuja ──
   const bubble = document.createElement('div')
   bubble.className = `bubble ${isSent ? 'sent' : 'received'}`
 
-  // Reply quote
   if (msg.replyTo) {
     const rq = document.createElement('div')
     rq.className = 'reply-quote'
@@ -110,7 +125,6 @@ function renderMessage(msg, animate = false) {
 
   bubble.appendChild(UI.buildMediaElement(msg, openLightbox))
 
-  // Hora
   const timeEl = document.createElement('div')
   timeEl.className = 'msg-time'
   timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -126,14 +140,9 @@ function renderMessage(msg, animate = false) {
   bubble.appendChild(timeEl)
   col.appendChild(bubble)
 
-  // Long press → responder
-  let pressTimer
-  wrap.addEventListener('touchstart', () => { pressTimer = setTimeout(() => setReply(msg), 500) })
-  wrap.addEventListener('touchend',   () => clearTimeout(pressTimer))
-  wrap.addEventListener('mousedown',  () => { pressTimer = setTimeout(() => setReply(msg), 600) })
-  wrap.addEventListener('mouseup',    () => clearTimeout(pressTimer))
+  // ── SWIPE para responder ──
+  addSwipeToReply(wrap, col, msg)
 
-  wrap.appendChild(avatarEl)
   wrap.appendChild(col)
 
   messagesEl.insertBefore(wrap, document.getElementById('newMsgIndicator'))
@@ -141,6 +150,86 @@ function renderMessage(msg, animate = false) {
   if (animate) requestAnimationFrame(() => {
     wrap.style.opacity   = '1'
     wrap.style.transform = 'translateY(0) translateX(0)'
+  })
+}
+
+// ========================
+// 👆 SWIPE PARA RESPONDER
+// ========================
+function addSwipeToReply(wrap, col, msg) {
+  const isSent   = msg.fromMe === true
+  let startX     = 0
+  let startY     = 0
+  let isDragging = false
+  let triggered  = false
+  const THRESHOLD = 60
+
+  // Ícono de reply que aparece al deslizar
+  const replyIcon = document.createElement('div')
+  replyIcon.style.cssText = `
+    position: absolute;
+    ${isSent ? 'left: -40px' : 'right: -40px'};
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: transform 0.15s;
+    pointer-events: none;
+    z-index: 5;
+  `
+  replyIcon.textContent = '↩'
+  wrap.style.position = 'relative'
+  wrap.appendChild(replyIcon)
+
+  wrap.addEventListener('touchstart', (e) => {
+    startX     = e.touches[0].clientX
+    startY     = e.touches[0].clientY
+    isDragging = false
+    triggered  = false
+    col.style.transition = 'none'
+  }, { passive: true })
+
+  wrap.addEventListener('touchmove', (e) => {
+    const dx = e.touches[0].clientX - startX
+    const dy = e.touches[0].clientY - startY
+
+    // Solo horizontal
+    if (!isDragging && Math.abs(dy) > Math.abs(dx)) return
+    isDragging = true
+
+    // Dirección según sent/received
+    const valid = isSent ? dx < 0 : dx > 0
+    if (!valid) return
+
+    const dist = Math.min(Math.abs(dx), THRESHOLD)
+    const move = isSent ? -dist : dist
+
+    col.style.transform = `translateX(${move}px)`
+
+    // Mostrar ícono
+    const pct = dist / THRESHOLD
+    replyIcon.style.transform = `translateY(-50%) scale(${pct})`
+
+    if (dist >= THRESHOLD && !triggered) {
+      triggered = true
+      replyIcon.style.background = 'var(--green)'
+      // Vibración haptica
+      if (navigator.vibrate) navigator.vibrate(30)
+    }
+  }, { passive: true })
+
+  wrap.addEventListener('touchend', () => {
+    col.style.transition = 'transform 0.25s'
+    col.style.transform  = 'translateX(0)'
+    replyIcon.style.transform = 'translateY(-50%) scale(0)'
+    replyIcon.style.background = 'var(--gold)'
+
+    if (triggered) setReply(msg)
+    isDragging = false
+    triggered  = false
   })
 }
 
@@ -226,10 +315,13 @@ function sendMessage() {
   if (!content && !pendingImage) return
 
   const payload = {
-    chatId, content: content || '', senderName: 'Panel',
+    chatId,
+    content: content || '',
+    senderName: 'Panel',
     replyTo: replyTo ? {
-      senderName: replyTo.fromMe ? 'Tú' : (replyTo.senderName || 'Usuario'),
-      content:    replyTo.content || '[Multimedia]'
+      senderName:   replyTo.fromMe ? 'Tú' : (replyTo.senderName || 'Usuario'),
+      content:      replyTo.content || '[Multimedia]',
+      waMessageKey: replyTo.waMessageKey || null
     } : null
   }
 
@@ -247,6 +339,22 @@ function sendMessage() {
 }
 
 SocketManager.onReceiveMessage((msg) => {
+  if (msg.isViewOnce && msg.mediaUrl && msg.waMessageKey?.id) {
+    const existing = document.querySelector(`[data-viewonce-id="${msg.waMessageKey.id}"]`)
+    if (existing) {
+      const label = msg.type === 'video' ? 'Video' : msg.type === 'audio' ? 'Audio' : 'Foto'
+      existing.innerHTML = `
+        <div class="viewonce-icon" style="border-color:var(--gold)">🕐</div>
+        <div class="viewonce-info">
+          <div class="viewonce-label">${label}</div>
+          <div class="viewonce-sub" style="color:var(--gold)">Toca para ver</div>
+        </div>
+      `
+      existing.onclick = () => openLightbox(msg)
+      return
+    }
+  }
+
   renderMessage(msg, true)
   if (isAtBottom) scrollToBottom()
   else document.getElementById('newMsgIndicator').classList.add('visible')
@@ -280,4 +388,3 @@ async function loadChat() {
 }
 
 loadChat()
-
