@@ -22,6 +22,9 @@ const RECONNECT_DELAY        = 5000;
 let isReady    = false;
 let connGlobal = null;
 
+// ========================
+// 🌐 EXPORTS
+// ========================
 export function getConn() { return connGlobal; }
 
 export async function sendToWhatsApp(chatId, content, replyTo = null) {
@@ -39,6 +42,9 @@ export async function start() {
     await connectToWhatsApp();
 }
 
+// ========================
+// 🎨 BANNER
+// ========================
 function showBanner() {
     console.clear();
     console.log(chalk.yellow.bold('╔════════════════════════════════════════╗'));
@@ -49,6 +55,9 @@ function showBanner() {
     console.log(chalk.cyan(`  ⚙️  Prefijo: ${config.prefix}\n`));
 }
 
+// ========================
+// 🔇 SUPRIMIR LOGS
+// ========================
 function suppressLogs() {
     const originalLog   = console.log;
     const originalError = console.error;
@@ -58,6 +67,9 @@ function suppressLogs() {
     console.error = (...a) => { const m = a.join(' '); if (blocked.some(p => m.includes(p))) return; originalError(...a); };
 }
 
+// ========================
+// 📲 CÓDIGO DE EMPAREJAMIENTO
+// ========================
 async function generatePairingCode(conn) {
     const phoneNumber = config.number?.replace(/[^0-9]/g, '');
     if (!phoneNumber) { console.log(chalk.red('❌ Configura el número en config.js\n')); process.exit(1); }
@@ -67,6 +79,9 @@ async function generatePairingCode(conn) {
     console.log(chalk.gray('  WhatsApp > Dispositivos > Vincular dispositivo\n'));
 }
 
+// ========================
+// 🖼️ DESCARGAR MULTIMEDIA
+// ========================
 async function downloadMedia(conn, message) {
     try {
         const buffer = await downloadMediaMessage(
@@ -88,6 +103,9 @@ async function downloadMedia(conn, message) {
     }
 }
 
+// ========================
+// 📨 ENVIAR AL PANEL
+// ========================
 async function sendToPanel(data) {
     try {
         await axios.post('http://localhost:3000/message', data);
@@ -96,6 +114,9 @@ async function sendToPanel(data) {
     }
 }
 
+// ========================
+// 💬 PROCESAR MENSAJE
+// ========================
 async function processMessage(conn, message) {
     if (!message?.message) return;
     const raw = message.message;
@@ -121,12 +142,60 @@ async function processMessage(conn, message) {
 
     if (raw.protocolMessage) return;
 
-    // ── viewOnce ──
-    let msgContent = raw;
-    let isViewOnce = false;
-    if      (raw.viewOnceMessageV2?.message)          { msgContent = raw.viewOnceMessageV2.message;          isViewOnce = true; }
-    else if (raw.viewOnceMessageV2Extension?.message) { msgContent = raw.viewOnceMessageV2Extension.message; isViewOnce = true; }
-    else if (raw.imageMessage?.viewOnce || raw.videoMessage?.viewOnce || raw.audioMessage?.viewOnce) { isViewOnce = true; }
+    // ── Detectar viewOnce ──
+    let msgContent   = raw;
+    let isViewOnce   = false;
+    let viewOnceType = null;
+
+    if (raw.viewOnceMessageV2?.message) {
+        msgContent = raw.viewOnceMessageV2.message;
+        isViewOnce = true;
+    } else if (raw.viewOnceMessageV2Extension?.message) {
+        msgContent = raw.viewOnceMessageV2Extension.message;
+        isViewOnce = true;
+    } else if (raw.imageMessage?.viewOnce) {
+        isViewOnce   = true;
+        viewOnceType = 'image';
+    } else if (raw.videoMessage?.viewOnce) {
+        isViewOnce   = true;
+        viewOnceType = 'video';
+    } else if (raw.audioMessage?.viewOnce) {
+        isViewOnce   = true;
+        viewOnceType = 'audio';
+    }
+
+    // ── ViewOnce directo bloqueado por Baileys → enviar placeholder ──
+    if (isViewOnce && viewOnceType) {
+        const chatId     = message.key.remoteJid;
+        const isGroup    = chatId.endsWith('@g.us');
+        const senderName = message.pushName || 'Desconocido';
+        const senderId   = message.key.participant || chatId;
+
+        let chatName = chatId;
+        try {
+            chatName = isGroup
+                ? (await conn.groupMetadata(chatId)).subject
+                : message.pushName || chatId;
+        } catch {}
+
+        console.log(chalk.cyan(`👁️ ViewOnce placeholder: ${viewOnceType}`));
+
+        await sendToPanel({
+            from:         chatId,
+            type:         viewOnceType,
+            content:      '',
+            text:         '',
+            mediaUrl:     null,
+            pushName:     chatName,
+            senderName,
+            senderId,
+            isGroup,
+            fromMe:       message.key.fromMe || false,
+            isViewOnce:   true,
+            waMessageKey: message.key
+        });
+        return;
+    }
 
     const msgForDownload = { ...message, message: msgContent };
 
@@ -181,6 +250,9 @@ async function handleMessages(conn, { messages, type }) {
     }
 }
 
+// ========================
+// 🔌 MANEJO DE CONEXIÓN
+// ========================
 async function handleConnectionUpdate(conn, update) {
     const { connection, lastDisconnect } = update;
 
@@ -213,6 +285,9 @@ async function handleConnectionUpdate(conn, update) {
     }
 }
 
+// ========================
+// 🚀 CONECTAR WHATSAPP
+// ========================
 async function connectToWhatsApp() {
     try {
         const { state, saveCreds } = await useMultiFileAuthState('./sesion');

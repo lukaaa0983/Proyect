@@ -65,20 +65,56 @@ const UI = {
     return div
   },
 
+  // ── Etiqueta según tipo de viewOnce ──
+  viewOnceLabel(type) {
+    if (type === 'video') return 'Video'
+    if (type === 'audio') return 'Audio'
+    return 'Foto'
+  },
+
   buildMediaElement(msg, onLightbox) {
     const wrap = document.createElement('div')
 
     // ── Ver una vez ──
     if (msg.isViewOnce) {
-      wrap.className = 'viewonce-bubble'
-      wrap.innerHTML = `
-        <div class="viewonce-icon">🕐</div>
-        <div class="viewonce-info">
-          <div class="viewonce-label">${msg.type === 'video' ? 'Video' : 'Foto'}</div>
-          <div class="viewonce-sub">${msg.mediaUrl ? 'Toca para ver' : 'No disponible'}</div>
-        </div>
-      `
-      if (msg.mediaUrl) wrap.onclick = () => onLightbox(msg)
+      const label    = UI.viewOnceLabel(msg.type)
+      const hasMedia = !!msg.mediaUrl
+      const isAudio  = msg.type === 'audio'
+
+      wrap.className  = 'viewonce-bubble'
+      wrap.dataset.viewonceId = msg.waMessageKey?.id || ''
+
+      if (hasMedia) {
+        // Ya tenemos la media — mostrar disponible
+        wrap.innerHTML = `
+          <div class="viewonce-icon" style="border-color:var(--gold)">🕐</div>
+          <div class="viewonce-info">
+            <div class="viewonce-label">${label}</div>
+            <div class="viewonce-sub" style="color:var(--gold)">Toca para ver</div>
+          </div>
+        `
+        if (isAudio) {
+          // Audio viewOnce — mostrar player directo
+          wrap.innerHTML = ''
+          wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px'
+          const tag = document.createElement('div')
+          tag.style.cssText = 'font-size:11px;color:var(--gold);display:flex;align-items:center;gap:4px'
+          tag.innerHTML = '🕐 Audio · Ver una vez'
+          wrap.appendChild(tag)
+          wrap.appendChild(UI.buildAudioPlayer(msg.mediaUrl))
+        } else {
+          wrap.onclick = () => onLightbox(msg)
+        }
+      } else {
+        // Sin media aún — esperando
+        wrap.innerHTML = `
+          <div class="viewonce-icon" style="border-color:#666;opacity:0.6">🕐</div>
+          <div class="viewonce-info">
+            <div class="viewonce-label" style="color:var(--text-dim)">${label}</div>
+            <div class="viewonce-sub" style="color:var(--text-dim);font-style:italic">Ver una vez (esperando...)</div>
+          </div>
+        `
+      }
       return wrap
     }
 
@@ -130,7 +166,6 @@ const UI = {
       return wrap
     }
 
-    // Texto normal o mensaje borrado (muestra el contenido original)
     const t = document.createElement('div')
     t.textContent = msg.originalContent || msg.content || ''
     wrap.appendChild(t)

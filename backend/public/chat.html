@@ -7,23 +7,202 @@
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/layout.css">
+  <style>
+    /* ── MEJORAS VISUALES CHAT ── */
+
+    /* Fondo con patrón sutil */
+    #messages {
+      background:
+        radial-gradient(circle at 20% 50%, rgba(201,168,76,0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(201,168,76,0.02) 0%, transparent 50%),
+        var(--bg);
+    }
+
+    /* Burbujas con sombra sutil */
+    .bubble.received {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    .bubble.sent {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    /* Wrap con avatar */
+    .msg-wrap {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 8px;
+      max-width: 88%;
+    }
+
+    .msg-wrap.sent {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-wrap.received {
+      align-self: flex-start;
+    }
+
+    /* Avatar del contacto */
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--surface3), var(--surface2));
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold-light);
+      flex-shrink: 0;
+      margin-bottom: 2px;
+    }
+
+    .msg-avatar.hidden {
+      visibility: hidden;
+    }
+
+    /* Columna de burbujas */
+    .msg-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .msg-wrap.sent  .msg-col { align-items: flex-end; }
+    .msg-wrap.received .msg-col { align-items: flex-start; }
+
+    /* Nombre + número sobre la burbuja */
+    .msg-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+      padding-left: 2px;
+    }
+
+    .msg-meta-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .msg-meta-number {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Burbuja más redondeada */
+    .bubble {
+      border-radius: 16px;
+      padding: 8px 12px;
+    }
+
+    .bubble.received { border-bottom-left-radius: 4px; }
+    .bubble.sent     { border-bottom-right-radius: 4px; }
+
+    /* Reply quote mejorada */
+    .reply-quote {
+      border-left: 3px solid var(--gold);
+      padding: 6px 10px;
+      margin-bottom: 6px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 0 10px 10px 0;
+      font-size: 12px;
+    }
+
+    .reply-quote-name {
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .reply-quote-text {
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Hora */
+    .msg-time {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-align: right;
+      margin-top: 3px;
+      opacity: 0.8;
+    }
+
+    /* Scroll indicator mejorado */
+    #newMsgIndicator {
+      background: var(--gold);
+      color: #000;
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      box-shadow: 0 2px 12px rgba(201,168,76,0.4);
+    }
+
+    /* Input area mejorada */
+    #inputArea {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    /* Botón enviar animado */
+    #sendBtn {
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    #sendBtn:active {
+      transform: scale(0.9);
+    }
+
+    /* Header mejorado */
+    #header {
+      background: linear-gradient(180deg, #161616, var(--surface));
+      border-bottom: 1px solid rgba(201,168,76,0.15);
+    }
+
+    #chatName {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    #chatStatus {
+      font-size: 11px;
+      color: var(--gold-dim);
+    }
+  </style>
 </head>
 <body>
 
+  <!-- HEADER -->
   <div id="header">
-    <div class="icon-btn" style="color:var(--gold)" onclick="location.href='/'">←</div>
-    <div class="avatar" id="avatar" style="width:42px;height:42px;font-size:18px;border-color:var(--gold-dim)">?</div>
+    <div class="icon-btn" style="color:var(--gold);font-size:20px" onclick="location.href='/'">←</div>
+    <div class="avatar" id="avatar" style="width:42px;height:42px;font-size:18px;border-color:var(--gold-dim);border-radius:50%">?</div>
     <div id="header-info">
       <div id="chatName">Cargando...</div>
       <div id="chatStatus">WhatsApp</div>
     </div>
-    <div class="icon-btn" onclick="scrollToBottom()">↓</div>
+    <div class="icon-btn" onclick="scrollToBottom()" style="font-size:18px">↓</div>
   </div>
 
+  <!-- MENSAJES -->
   <div id="messages">
     <div id="newMsgIndicator" onclick="scrollToBottom()">↓ Nuevo mensaje</div>
   </div>
 
+  <!-- REPLY PREVIEW -->
   <div id="replyPreview">
     <div id="replyBar"></div>
     <div id="replyPreview-text">
@@ -33,12 +212,14 @@
     <div id="replyCancel" onclick="cancelReply()">✕</div>
   </div>
 
+  <!-- IMG PREVIEW -->
   <div id="imgPreviewBar">
     <img id="imgPreviewThumb" src="" alt="">
     <span id="imgPreviewName"></span>
     <span id="imgPreviewCancel" onclick="cancelImage()">✕</span>
   </div>
 
+  <!-- INPUT -->
   <div id="inputArea">
     <div id="imgBtn" onclick="document.getElementById('imgInput').click()">📎</div>
     <input type="file" id="imgInput" accept="image/*,video/*,audio/*" style="display:none">
@@ -46,6 +227,7 @@
     <button id="sendBtn" onclick="sendMessage()">➤</button>
   </div>
 
+  <!-- LIGHTBOX -->
   <div id="lightbox">
     <div id="lightbox-header">
       <div class="lb-btn" onclick="closeLightbox()">✕</div>

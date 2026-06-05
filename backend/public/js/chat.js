@@ -32,39 +32,85 @@ function maybeAddDateDivider(ts) {
   messagesEl.insertBefore(div, document.getElementById('newMsgIndicator'))
 }
 
+// ── Colores por sender ──
+const senderColors = {}
+const colorPalette = ['#c9a84c','#53bdeb','#25d366','#e17055','#a29bfe','#fd79a8','#fdcb6e','#00cec9']
+let colorIndex = 0
+
+function getSenderColor(senderId) {
+  if (!senderColors[senderId]) {
+    senderColors[senderId] = colorPalette[colorIndex % colorPalette.length]
+    colorIndex++
+  }
+  return senderColors[senderId]
+}
+
 function renderMessage(msg, animate = false) {
   maybeAddDateDivider(msg.timestamp)
-  const isSent = msg.fromMe === true
-  const wrap   = document.createElement('div')
+  const isSent  = msg.fromMe === true
+  const isGroup = chatId.endsWith('@g.us')
+  const wrap    = document.createElement('div')
   wrap.className = `msg-wrap ${isSent ? 'sent' : 'received'}`
 
   if (msg.waMessageKey?.id) wrap.dataset.msgId = msg.waMessageKey.id
 
   if (animate) {
     wrap.style.opacity    = '0'
-    wrap.style.transform  = 'translateY(8px)'
+    wrap.style.transform  = `translateY(8px) translateX(${isSent ? '8px' : '-8px'})`
     wrap.style.transition = 'opacity 0.25s, transform 0.25s'
   }
 
+  // Avatar
+  const avatarEl = document.createElement('div')
+  avatarEl.className = 'msg-avatar'
+  const name = msg.senderName || (isSent ? 'Tú' : '?')
+  avatarEl.textContent = name.charAt(0).toUpperCase()
+  if (isSent) avatarEl.style.borderColor = 'var(--gold-dim)'
+
+  // Columna
+  const col = document.createElement('div')
+  col.className = 'msg-col'
+
+  // Meta (nombre + número) — solo para mensajes recibidos con nombre
   if (!isSent && msg.senderName) {
-    const sl = document.createElement('div')
-    sl.className = 'msg-sender-label'
-    sl.textContent = msg.senderName
-    wrap.appendChild(sl)
+    const meta = document.createElement('div')
+    meta.className = 'msg-meta'
+
+    const nameEl = document.createElement('span')
+    nameEl.className = 'msg-meta-name'
+    nameEl.textContent = msg.senderName
+    nameEl.style.color = getSenderColor(msg.senderId || msg.senderName)
+
+    meta.appendChild(nameEl)
+
+    if (msg.senderId && msg.senderId !== msg.senderName && msg.senderId.includes('@')) {
+      const numEl = document.createElement('span')
+      numEl.className = 'msg-meta-number'
+      numEl.textContent = '+' + msg.senderId.replace('@s.whatsapp.net', '').replace('@lid', '')
+      meta.appendChild(numEl)
+    }
+
+    col.appendChild(meta)
   }
 
+  // Burbuja
   const bubble = document.createElement('div')
   bubble.className = `bubble ${isSent ? 'sent' : 'received'}`
 
+  // Reply quote
   if (msg.replyTo) {
     const rq = document.createElement('div')
     rq.className = 'reply-quote'
-    rq.innerHTML = `<b>${msg.replyTo.senderName || 'Tú'}:</b> ${msg.replyTo.content || '[Multimedia]'}`
+    rq.innerHTML = `
+      <div class="reply-quote-name">${msg.replyTo.senderName || 'Tú'}</div>
+      <div class="reply-quote-text">${msg.replyTo.content || '[Multimedia]'}</div>
+    `
     bubble.appendChild(rq)
   }
 
   bubble.appendChild(UI.buildMediaElement(msg, openLightbox))
 
+  // Hora
   const timeEl = document.createElement('div')
   timeEl.className = 'msg-time'
   timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -78,17 +124,24 @@ function renderMessage(msg, animate = false) {
   }
 
   bubble.appendChild(timeEl)
-  wrap.appendChild(bubble)
+  col.appendChild(bubble)
 
+  // Long press → responder
   let pressTimer
   wrap.addEventListener('touchstart', () => { pressTimer = setTimeout(() => setReply(msg), 500) })
   wrap.addEventListener('touchend',   () => clearTimeout(pressTimer))
   wrap.addEventListener('mousedown',  () => { pressTimer = setTimeout(() => setReply(msg), 600) })
   wrap.addEventListener('mouseup',    () => clearTimeout(pressTimer))
 
+  wrap.appendChild(avatarEl)
+  wrap.appendChild(col)
+
   messagesEl.insertBefore(wrap, document.getElementById('newMsgIndicator'))
 
-  if (animate) requestAnimationFrame(() => { wrap.style.opacity = '1'; wrap.style.transform = 'translateY(0)' })
+  if (animate) requestAnimationFrame(() => {
+    wrap.style.opacity   = '1'
+    wrap.style.transform = 'translateY(0) translateX(0)'
+  })
 }
 
 // ── ANTI-REVOKE en tiempo real ──
@@ -227,3 +280,4 @@ async function loadChat() {
 }
 
 loadChat()
+
