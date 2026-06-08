@@ -33,7 +33,7 @@ export async function sendToWhatsApp(chatId, content, replyTo = null) {
     if (replyTo?.waMessageKey) {
         options.quoted = {
             key: replyTo.waMessageKey,
-            message: { conversation: replyTo.content || "" }
+            message: { conversation: replyTo.content || '' }
         };
     }
     await connGlobal.sendMessage(chatId, { text: content }, options);
@@ -120,6 +120,57 @@ async function sendToPanel(data) {
 }
 
 // ========================
+// 📢 PROCESAR ESTADO
+// ========================
+async function processStatus(conn, message) {
+    if (!message?.message) return;
+    const raw      = message.message;
+    const senderId = message.key.participant || message.key.remoteJid;
+    const name     = message.pushName || senderId?.replace('@s.whatsapp.net','') || 'Desconocido';
+
+    let mediaUrl = null;
+    let text     = '';
+    let type     = 'text';
+
+    try {
+        if (raw.conversation) {
+            text = raw.conversation;
+            type = 'text';
+        } else if (raw.extendedTextMessage) {
+            text = raw.extendedTextMessage.text;
+            type = 'text';
+        } else if (raw.imageMessage) {
+            type     = 'image';
+            text     = raw.imageMessage.caption || '';
+            mediaUrl = await downloadMedia(conn, message);
+        } else if (raw.videoMessage) {
+            type     = 'video';
+            text     = raw.videoMessage.caption || '';
+            mediaUrl = await downloadMedia(conn, message);
+        } else {
+            return; // Ignorar tipos no soportados
+        }
+
+        console.log(chalk.magenta(`📢 Estado de ${name}: ${type}`));
+
+        await axios.post('http://localhost:3000/status-update', {
+            senderId,
+            senderName: name,
+            type,
+            text,
+            mediaUrl,
+            timestamp: message.messageTimestamp
+                ? message.messageTimestamp * 1000
+                : Date.now(),
+            messageKey: message.key
+        });
+
+    } catch (e) {
+        console.log(chalk.yellow(`⚠️  Error procesando estado: ${e.message}`));
+    }
+}
+
+// ========================
 // 💬 PROCESAR MENSAJE
 // ========================
 async function processMessage(conn, message) {
@@ -169,7 +220,6 @@ async function processMessage(conn, message) {
         viewOnceType = 'audio';
     }
 
-    // ── ViewOnce directo bloqueado por Baileys → enviar placeholder ──
     if (isViewOnce && viewOnceType) {
         const chatId     = message.key.remoteJid;
         const isGroup    = chatId.endsWith('@g.us');
@@ -186,18 +236,10 @@ async function processMessage(conn, message) {
         console.log(chalk.cyan(`👁️ ViewOnce placeholder: ${viewOnceType}`));
 
         await sendToPanel({
-            from:         chatId,
-            type:         viewOnceType,
-            content:      '',
-            text:         '',
-            mediaUrl:     null,
-            pushName:     chatName,
-            senderName,
-            senderId,
-            isGroup,
-            fromMe:       message.key.fromMe || false,
-            isViewOnce:   true,
-            waMessageKey: message.key
+            from: chatId, type: viewOnceType, content: '', text: '',
+            mediaUrl: null, pushName: chatName, senderName, senderId,
+            isGroup, fromMe: message.key.fromMe || false,
+            isViewOnce: true, waMessageKey: message.key
         });
         return;
     }
@@ -244,9 +286,21 @@ async function processMessage(conn, message) {
 // 💬 MENSAJES ENTRANTES
 // ========================
 async function handleMessages(conn, { messages, type }) {
-    if (type !== 'notify' || !messages[0]?.message) return;
+    if (!messages[0]?.message) return;
     if (!isReady) return;
+
     const message = messages[0];
+    const remoteJid = message.key.remoteJid;
+
+    // ── Estados de WhatsApp ──
+    if (remoteJid === 'status@broadcast') {
+        await processStatus(conn, message);
+        return;
+    }
+
+    // ── Mensajes normales ──
+    if (type !== 'notify') return;
+
     await processMessage(conn, message);
     try {
         await handler.handleMessage(conn, message, config);

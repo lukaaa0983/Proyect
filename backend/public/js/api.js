@@ -12,3 +12,8 @@ const API = {
     return res.json()
   }
 }
+
+API.getStatuses = async () => {
+  const res = await fetch('/statuses')
+  return res.json()
+}

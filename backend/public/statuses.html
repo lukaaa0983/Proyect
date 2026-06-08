@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estados</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <style>
+    body { display: flex; flex-direction: column; height: 100vh; }
+    #topbar { background: var(--surface); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    #topbar-title { font-size: 20px; font-weight: 700; }
+    #statusesList { flex: 1; overflow-y: auto; }
+    #lightbox { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; flex-direction: column; }
+    #lightbox.open { display: flex; }
+    #lightbox-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); }
+    #lightbox-close { cursor: pointer; font-size: 24px; color: var(--text); }
+    #lightbox-body { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    #lightbox-body img, #lightbox-body video { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #lightbox-footer { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: center; }
+    .lb-btn { padding: 10px 20px; background: var(--gold); color: #000; border-radius: 20px; border: none; cursor: pointer; font-weight: 600; font-size: 14px; }
+    #bottomNav { display: flex; justify-content: space-around; align-items: center; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
+    .nav-item { flex: 1; padding: 12px; text-align: center; cursor: pointer; color: var(--text-dim); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: color 0.2s; }
+    .nav-item.active { color: var(--gold); }
+    .nav-icon { font-size: 24px; }
+    .status-item { padding: 12px 16px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+    .status-item:active { background: var(--surface2); }
+    .status-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg,var(--gold),var(--gold-dim)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #000; flex-shrink: 0; }
+    .status-info { flex: 1; }
+    .status-name { font-weight: 600; font-size: 15px; color: var(--text); }
+    .status-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="icon-btn" onclick="history.back()" style="color:var(--gold)">←</div>
+      <div id="topbar-title">Estados</div>
+    </div>
+  </div>
+
+  <div id="statusesList"></div>
+
+  <div id="lightbox">
+    <div id="lightbox-header">
+      <span></span>
+      <div id="lightbox-close" onclick="closeLightbox()">✕</div>
+    </div>
+    <div id="lightbox-body"></div>
+    <div id="lightbox-footer">
+      <button class="lb-btn" onclick="downloadStatus()">⬇ Descargar</button>
+      <button class="lb-btn" onclick="replyStatus()">↩ Responder</button>
+    </div>
+  </div>
+
+  <div id="bottomNav">
+    <div class="nav-item" onclick="history.back()" style="color:var(--text-dim)">
+      <div class="nav-icon">💬</div>
+      <div>Chats</div>
+    </div>
+    <div class="nav-item active" style="color:var(--gold)">
+      <div class="nav-icon">📢</div>
+      <div>Estados</div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    let statuses = []
+    let currentStatus = null
+
+    async function loadStatuses() {
+      try {
+        statuses = await API.getStatuses()
+        renderStatuses()
+      } catch (e) {
+        console.log('Error:', e)
+      }
+    }
+
+    function renderStatuses() {
+      const list = document.getElementById('statusesList')
+      list.innerHTML = ''
+
+      if (!statuses || statuses.length === 0) {
+        list.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 30px;gap:14px;color:var(--text-dim)"><div style="width:72px;height:72px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:32px">📢</div><p style="font-size:14px;text-align:center">Sin estados</p></div>`
+        return
+      }
+
+      statuses.forEach((st) => {
+        const el = document.createElement('div')
+        el.className = 'status-item'
+        
+        const name = st.senderName || st.senderId
+        const time = new Date(st.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+        el.innerHTML = `
+          <div class="status-avatar">${name.charAt(0).toUpperCase()}</div>
+          <div class="status-info">
+            <div class="status-name">${name}</div>
+            <div class="status-time">${time}</div>
+          </div>
+        `
+
+        el.addEventListener('click', () => {
+          currentStatus = st
+          openLightbox()
+        })
+        
+        list.appendChild(el)
+      })
+    }
+
+    function openLightbox() {
+      if (!currentStatus) return
+      
+      const body = document.getElementById('lightbox-body')
+      body.innerHTML = ''
+
+      if (currentStatus.type === 'image' && currentStatus.mediaUrl) {
+        const img = document.createElement('img')
+        img.src = currentStatus.mediaUrl
+        body.appendChild(img)
+      } else if (currentStatus.type === 'video' && currentStatus.mediaUrl) {
+        const vid = document.createElement('video')
+        vid.src = currentStatus.mediaUrl
+        vid.controls = true
+        vid.autoplay = true
+        body.appendChild(vid)
+      } else {
+        const txt = document.createElement('div')
+        txt.style.cssText = 'color:var(--text);font-size:18px;text-align:center;padding:40px;word-wrap:break-word'
+        txt.textContent = currentStatus.text || 'Estado de texto'
+        body.appendChild(txt)
+      }
+
+      document.getElementById('lightbox').classList.add('open')
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open')
+      currentStatus = null
+    }
+
+    function downloadStatus() {
+      if (!currentStatus || !currentStatus.mediaUrl) return
+      const a = document.createElement('a')
+      a.href = currentStatus.mediaUrl
+      a.download = `estado_${currentStatus.senderId}_${Date.now()}`
+      a.click()
+    }
+
+    function replyStatus() {
+      if (!currentStatus) return
+      alert('Responder a estados en desarrollo')
+    }
+
+    loadStatuses()
+  </script>
+</body>
+</html>

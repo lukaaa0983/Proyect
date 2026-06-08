@@ -18,7 +18,8 @@ global.io = io
 const DATA_PATH    = path.join(__dirname, "./data/chats.json")
 const MAX_MESSAGES = 1000
 
-let chats = {}
+let chats   = {}
+let statuses = [] // Array de estados en memoria
 
 try { chats = JSON.parse(fs.readFileSync(DATA_PATH, "utf8")) } catch { chats = {} }
 
@@ -141,11 +142,40 @@ app.post("/message", (req, res) => {
 })
 
 // ========================
+// 📢 RECIBIR ESTADO DEL BOT
+// ========================
+app.post("/status-update", (req, res) => {
+  const { senderId, senderName, type, text, mediaUrl, timestamp, messageKey } = req.body
+  if (!senderId) return res.json({ success: true })
+
+  // Buscar si ya existe estado de este contacto y actualizarlo
+  const idx = statuses.findIndex(s => s.senderId === senderId)
+  const status = { senderId, senderName, type, text, mediaUrl, timestamp, messageKey, seenAt: null }
+
+  if (idx >= 0) {
+    statuses[idx] = status
+  } else {
+    statuses.unshift(status)
+  }
+
+  // Máximo 100 estados en memoria
+  if (statuses.length > 100) statuses = statuses.slice(0, 100)
+
+  console.log(`📢 Estado de ${senderName}: ${type}`)
+
+  // Notificar al frontend en tiempo real
+  io.emit('new_status', status)
+
+  res.json({ success: true })
+})
+
+// ========================
 // 📥 ENDPOINTS
 // ========================
-app.get("/chats",    (req, res) => res.json(chats))
-app.get("/chat/:id", (req, res) => res.json(chats[req.params.id] || { name: req.params.id, messages: [] }))
-app.get("/status",   (req, res) => res.json({
+app.get("/chats",        (req, res) => res.json(chats))
+app.get("/chat/:id",     (req, res) => res.json(chats[req.params.id] || { name: req.params.id, messages: [] }))
+app.get("/statuses",     (req, res) => res.json(statuses))
+app.get("/status",       (req, res) => res.json({
   status: "ok",
   chats:  Object.keys(chats).length,
   bot:    botModule?.getConn?.() ? "conectado" : "desconectado"

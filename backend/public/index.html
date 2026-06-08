@@ -21,24 +21,21 @@
         </div>
       </div>
     </div>
-    <div style="display:flex;gap:6px">
-      <div class="icon-btn" onclick="loadChats()">↺</div>
-    </div>
+    <div class="icon-btn" onclick="toggleSearch()" style="color:var(--text-dim);font-size:18px">🔍</div>
   </div>
 
-  <div id="search">
-    <div id="search-wrap">
+  <div id="searchBar" style="display:none;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+    <div id="search-wrap" style="display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:0 12px;gap:8px">
       <span style="color:var(--text-dim);font-size:14px">🔍</span>
-      <input type="text" id="searchInput" placeholder="Buscar conversación..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Buscar conversación..." autocomplete="off" style="flex:1;padding:10px 0;border:none;background:transparent;color:var(--text);outline:none;font-size:14px">
     </div>
   </div>
 
   <div id="filters">
-    <div class="filter-chip active" id="chip-all"      onclick="setFilter('all')">Todos <span class="count" id="count-all">0</span></div>
-    <div class="filter-chip"        id="chip-unread"   onclick="setFilter('unread')">No leídos <span class="count" id="count-unread">0</span></div>
-    <div class="filter-chip"        id="chip-favorites" onclick="setFilter('favorites')">⭐ Favoritos <span class="count" id="count-favorites">0</span></div>
-    <div class="filter-chip"        id="chip-groups"   onclick="setFilter('groups')">Grupos <span class="count" id="count-groups">0</span></div>
-    <div class="filter-chip"        id="chip-archived" onclick="setFilter('archived')">Archivados <span class="count" id="count-archived">0</span></div>
+    <div class="filter-chip active" id="chip-all" onclick="setFilter('all')">Todos</div>
+    <div class="filter-chip" id="chip-unread" onclick="setFilter('unread')">No leídos</div>
+    <div class="filter-chip" id="chip-favorites" onclick="setFilter('favorites')">Favoritos</div>
+    <div class="filter-chip" id="chip-groups" onclick="setFilter('groups')">Grupos</div>
   </div>
 
   <div id="chatList">
@@ -48,7 +45,18 @@
     </div>
   </div>
 
-  <div id="overlay" onclick="closeCtxMenu()"></div>
+  <div id="bottomNav" style="display:flex;justify-content:space-around;align-items:center;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0">
+    <div class="nav-item active" onclick="location.href='/'" style="flex:1;padding:12px;text-align:center;cursor:pointer;color:var(--gold);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="font-size:24px">💬</div>
+      <div>Chats</div>
+    </div>
+    <div class="nav-item" onclick="location.href='/statuses.html'" style="flex:1;padding:12px;text-align:center;cursor:pointer;color:var(--text-dim);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color 0.2s">
+      <div style="font-size:24px">📢</div>
+      <div>Estados</div>
+    </div>
+  </div>
+
+  <div id="overlay" onclick="closeCtxMenu()" style="display:none;position:fixed;inset:0;z-index:99"></div>
   <div id="ctxMenu">
     <div class="ctx-item" onclick="ctxAction('fav')"><span class="ctx-icon">⭐</span><span id="ctx-fav-label">Agregar favorito</span></div>
     <div class="ctx-item" onclick="ctxAction('archive')"><span class="ctx-icon">📦</span><span id="ctx-archive-label">Archivar</span></div>
@@ -61,5 +69,15 @@
   <script src="/js/socket.js"></script>
   <script src="/js/ui.js"></script>
   <script src="/js/index.js"></script>
+
+  <script>
+    function toggleSearch() {
+      const bar = document.getElementById('searchBar')
+      bar.style.display = bar.style.display === 'none' ? 'block' : 'none'
+      if (bar.style.display === 'block') {
+        document.getElementById('searchInput').focus()
+      }
+    }
+  </script>
 </body>
 </html>
