@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Info del contacto</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0b1014;color:#e9edef;font-family:system-ui,sans-serif;height:100dvh;overflow-y:auto}
+#top{display:flex;justify-content:space-between;padding:14px 16px;font-size:24px;position:sticky;top:0;background:#0b1014;z-index:5}
+#top span{cursor:pointer;padding:0 6px}
+#av{width:136px;height:136px;border-radius:50%;background:#3a2c1e;margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#av img{width:100%;height:100%;object-fit:cover}
+#name{text-align:center;font-size:28px;margin-top:18px}#num{text-align:center;color:#8696a0;font-size:20px;margin-top:6px}
+#acts{display:flex;justify-content:center;gap:18px;margin:22px 0 8px}
+.act{text-align:center;font-size:14px;cursor:pointer;width:84px}.act i{display:flex;align-items:center;justify-content:center;width:84px;height:54px;border-radius:27px;background:#1f2a31;font-style:normal;font-size:22px;margin-bottom:8px}
+.row{display:flex;align-items:center;gap:22px;padding:16px 20px;cursor:pointer}.row:active{background:#18222a}
+.ri{width:30px;text-align:center;font-size:22px;color:#8696a0}.rt{flex:1;min-width:0;font-size:18px}.rs{color:#8696a0;font-size:15px;margin-top:3px}
+.sec{display:flex;justify-content:space-between;padding:20px 20px 10px;color:#8696a0;font-size:16px;cursor:pointer;border-top:8px solid #0e161b}
+#strip{display:flex;gap:6px;padding:0 20px 16px;overflow-x:auto}#strip .t{width:112px;height:112px;border-radius:12px;background:#000;flex-shrink:0;object-fit:cover}
+.sw{width:56px;height:32px;border-radius:16px;border:2px solid #8696a0;position:relative;flex-shrink:0}.sw:after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#8696a0;transition:.2s}.sw.on{border-color:#00a884;background:#00a88433}.sw.on:after{left:28px;background:#00a884}
+#sheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:flex-end}#sheet.open{display:flex}
+#sbox{background:#1f2c34;width:100%;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom))}#sbox .row{padding:16px 22px}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#2a3942;padding:10px 18px;border-radius:20px;display:none;z-index:60;font-size:14px}
+</style>
+</head>
+<body>
+<div id="top"><span onclick="history.back()">←</span><span onclick="moreMenu()">⋮</span></div>
+<div id="av"><svg width="64" height="64" viewBox="0 0 24 24" fill="#f6c36b"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c0-4.6 3.8-7.2 8.5-7.2s8.5 2.6 8.5 7.2z"/></svg></div>
+<div id="name">...</div><div id="num"></div>
+<div id="acts"></div>
+<div id="app"></div>
+<div id="sheet" onclick="if(event.target===this)this.classList.remove('open')"><div id="sbox"></div></div>
+<div id="toast"></div>
+<script>
+const id = new URLSearchParams(location.search).get('id')
+const $ = s => document.getElementById(s)
+let digits = id.split('@')[0].split(':')[0].replace(/\D/g, '')
+const isLid = id.endsWith('@lid')
+const fmt = d => d.startsWith('598') ? '+598 ' + d.slice(3).replace(/^(\d{2})(\d{3})(\d{3})$/, '$1 $2 $3') : '+' + d
+let chat = { name: '', messages: [] }, store = { bytes: 0, files: 0 }
+
+const cs = () => { try { return JSON.parse(localStorage.getItem('chatState') || '{}') } catch { return {} } }
+const st = () => cs()[id] || {}
+function setSt(patch) { const all = cs(); all[id] = { ...(all[id] || {}), ...patch }; localStorage.setItem('chatState', JSON.stringify(all)) }
+function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200) }
+function sheet(items) {
+  $('sbox').innerHTML = ''
+  items.forEach(([label, fn]) => { const d = document.createElement('div'); d.className = 'row'; d.textContent = label; d.onclick = () => { $('sheet').classList.remove('open'); if (fn) fn() }; $('sbox').appendChild(d) })
+  $('sheet').classList.add('open')
+}
+const size = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : b >= 1024 ? Math.round(b / 1024) + ' KB' : b + ' B'
+const allLists = () => [...new Set(Object.values(cs()).flatMap(s => s.lists || []))]
+
+async function load() {
+  chat = await (await fetch('/chat/' + encodeURIComponent(id))).json()
+  try { store = await (await fetch('/api/storage/' + encodeURIComponent(id))).json() } catch {}
+  $('name').textContent = chat.name || (isLid ? 'Contacto' : fmt(digits))
+  $('num').textContent = isLid ? '' : fmt(digits)
+  if (isLid) { try { const r = await (await fetch('/api/pn/' + encodeURIComponent(id))).json(); if (r.pn) { digits = r.pn.replace(/\D/g, ''); $('num').textContent = fmt(digits) } } catch (e) {} }
+  document.title = $('name').textContent
+  fetch('/api/pfp/' + encodeURIComponent(id)).then(r => r.json()).then(r => { if (r.url) $('av').innerHTML = '<img src="' + r.url + '">' }).catch(() => {})
+  render()
+}
+
+function render() {
+  $('acts').innerHTML = '<div class="act" onclick="location.href=\'tel:+' + digits + '\'"><i>📞</i>Llamar</div><div class="act" onclick="window.open(\'https://wa.me/' + digits + '\')"><i>📹</i>Video</div><div class="act" onclick="location.href=\'/chat.html?id=' + encodeURIComponent(id) + '&search=1\'"><i>🔍</i>Buscar</div>'
+  const ms = chat.messages.filter(m => m.mediaUrl)
+  const links = chat.messages.reduce((n, m) => n + ((m.content || '').match(/https?:\/\/[^\s]+/g) || []).length, 0)
+  const s = st(), note = localStorage.getItem('note:' + id) || ''
+  const vis = { yes: 'Sí', no: 'No' }[localStorage.getItem('mediavis:' + id)] || 'Predeterminado'
+  const eph = { 0: 'Desactivados', 86400: '24 horas', 604800: '7 días', 7776000: '90 días' }[localStorage.getItem('eph:' + id) || 0]
+  const lists = s.lists && s.lists.length ? s.lists.join(', ') : ''
+  const row = (ic, t, sub, fn, extra = '') => '<div class="row" onclick="' + fn + '"><div class="ri">' + ic + '</div><div class="rt">' + t + (sub ? '<div class="rs">' + sub + '</div>' : '') + '</div>' + extra + '</div>'
+  $('app').innerHTML =
+    row('🗂', 'Añadir a listas', lists, 'listsSheet()') +
+    row('📝', note ? 'Editar notas' : 'Añadir notas', '', 'editNote()').replace('</div></div>', '</div></div>') +
+    (note ? '<div class="rs" id="notetxt" style="padding:0 20px 12px 72px"></div>' : '') +
+    '<div class="sec" onclick="location.href=\'/group.html?id=' + encodeURIComponent(id) + '&tab=1\'"><span>Archivos, enlaces y docs.</span><span>' + (ms.length + links) + ' ›</span></div><div id="strip"></div>' +
+    row('🖼', 'Administrar almacenamiento', size(store.bytes || 0), 'storageSheet()') +
+    row('🔔', 'Notificaciones', s.muted ? 'Silenciadas' : '', 'notifSheet()') +
+    row('🖼', 'Visibilidad de archivos multimedia', vis, 'visSheet()') +
+    row('⏳', 'Mensajes temporales', eph, 'ephSheet()') +
+    row('💬', 'Restringir chat', 'Restringe y oculta este chat en este dispositivo.', 'toggleRestrict()', '<div class="sw ' + (s.restricted ? 'on' : '') + '"></div>')
+  if (note) $('notetxt').textContent = note
+  const strip = $('strip')
+  ms.filter(m => /\.(jpe?g|png|webp|gif|mp4|webm)$/.test(m.mediaUrl)).reverse().slice(0, 6).forEach(m => {
+    const v = /\.(mp4|webm)$/.test(m.mediaUrl), e = document.createElement(v ? 'video' : 'img')
+    e.className = 't'; e.src = m.mediaUrl; strip.appendChild(e)
+  })
+  if (!strip.children.length) strip.style.display = 'none'
+}
+
+function editNote() {
+  const v = prompt('Notas sobre este contacto', localStorage.getItem('note:' + id) || '')
+  if (v === null) return
+  if (v.trim()) localStorage.setItem('note:' + id, v.trim()); else localStorage.removeItem('note:' + id)
+  render()
+}
+function listsSheet() {
+  const mine = st().lists || []
+  const rows = allLists().map(n => [(mine.includes(n) ? '☑ ' : '☐ ') + n, () => { setSt({ lists: mine.includes(n) ? mine.filter(x => x !== n) : [...mine, n] }); render() }])
+  rows.push(['➕ Nueva lista', () => { const n = (prompt('Nombre de la lista') || '').replace(/['"<>]/g, '').trim(); if (n) { setSt({ lists: [...new Set([...mine, n])] }); render() } }])
+  sheet(rows)
+}
+function storageSheet() {
+  sheet([['Archivos de este chat: ' + (store.files || 0) + ' · ' + size(store.bytes || 0)], ['🗑 Borrar multimedia de este chat', async () => {
+    if (!confirm('Se borrarán las fotos, videos y audios guardados de este chat en el panel. ¿Continuar?')) return
+    const r = await (await fetch('/api/storage/' + encodeURIComponent(id) + '/purge', { method: 'POST' })).json()
+    toast('Liberados ' + size(r.freed || 0)); load()
+  }]])
+}
+function notifSheet() {
+  const m = st().muted
+  const mute = ms => () => { setSt({ muted: true, mutedUntil: ms ? Date.now() + ms : 0 }); localStorage.setItem('mute:' + id, '1'); render() }
+  if (m) return sheet([['🔔 Activar notificaciones', () => { setSt({ muted: false, mutedUntil: 0 }); localStorage.setItem('mute:' + id, '0'); render() }]])
+  sheet([['🔕 Silenciar 8 horas', mute(8 * 3600e3)], ['🔕 Silenciar 1 semana', mute(7 * 86400e3)], ['🔕 Silenciar siempre', mute(0)]])
+}
+function visSheet() { const set = v => () => { if (v) localStorage.setItem('mediavis:' + id, v); else localStorage.removeItem('mediavis:' + id); render() }; sheet([['Predeterminado', set('')], ['Sí, mostrar multimedia', set('yes')], ['No, ocultar multimedia en el chat', set('no')]]) }
+function ephSheet() {
+  const set = s => async () => {
+    const r = await (await fetch('/api/ephemeral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: id, seconds: s }) })).json()
+    if (r.ok) { localStorage.setItem('eph:' + id, s); render() } else toast(r.error || 'No se pudo cambiar')
+  }
+  sheet([['Desactivados', set(0)], ['24 horas', set(86400)], ['7 días', set(604800)], ['90 días', set(7776000)]])
+}
+function toggleRestrict() {
+  const on = !st().restricted
+  setSt({ restricted: on })
+  if (on) toast('Chat oculto de la lista. Búscalo por nombre para abrirlo.')
+  render()
+}
+async function blk(b) {
+  if (!confirm(b ? '¿Bloquear a este contacto?' : '¿Desbloquear a este contacto?')) return
+  const r = await (await fetch('/api/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: id, block: b }) })).json()
+  toast(r.ok ? (b ? 'Contacto bloqueado' : 'Contacto desbloqueado') : (r.error || 'No se pudo cambiar'))
+}
+function moreMenu() {
+  sheet([['🚫 Bloquear contacto', () => blk(true)], ['Desbloquear contacto', () => blk(false)], ['Copiar número', () => { navigator.clipboard && navigator.clipboard.writeText(fmt(digits)); toast('Número copiado') }],
+    ['Exportar chat', () => { const t = chat.messages.map(m => '[' + new Date(m.timestamp).toLocaleString() + '] ' + (m.fromMe ? 'Tú' : (m.senderName || '')) + ': ' + (m.content || (m.mediaUrl ? '<multimedia>' : ''))).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' })); a.download = ($('name').textContent || 'chat') + '.txt'; a.click() }],
+    ['Vaciar chat', async () => { if (!confirm('¿Vaciar todos los mensajes de este chat en el panel?')) return; await fetch('/chat/' + encodeURIComponent(id) + '/clear', { method: 'POST' }); toast('Chat vaciado'); load() }]])
+}
+load().then(async () => {
+  try {
+    const gs = await (await fetch('/api/common/' + encodeURIComponent(id))).json()
+    if (!gs.length) return
+    const box = document.createElement('div')
+    box.innerHTML = '<div class="sec"><span>' + gs.length + ' grupo' + (gs.length > 1 ? 's' : '') + ' en común</span></div>'
+    gs.forEach(g => {
+      const r = document.createElement('div')
+      r.className = 'row'
+      r.innerHTML = '<div class="ri">👥</div><div class="rt"></div>'
+      r.querySelector('.rt').textContent = g.name
+      r.onclick = () => { location.href = '/chat.html?id=' + encodeURIComponent(g.id) }
+      box.appendChild(r)
+    })
+    $('app').appendChild(box)
+  } catch (e) {}
+})
+</script>
+</body>
+</html>

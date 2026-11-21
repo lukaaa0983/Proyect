@@ -183,18 +183,70 @@
       color: var(--gold-dim);
     }
   </style>
+<style id="wa-skin">
+#messages{background-color:#0b141a !important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='none' stroke='%23fff' stroke-opacity='.05' stroke-width='2'%3E%3Ccircle cx='20' cy='22' r='7'/%3E%3Cpath d='M70 15v14M63 22h14'/%3E%3Cpath d='M95 80l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z'/%3E%3Crect x='25' y='78' width='16' height='12' rx='3'/%3E%3Cpath d='M60 60q8-10 16 0t16 0'/%3E%3C/svg%3E") !important}
+#header{background:#202c33 !important;border-bottom:none !important}
+#header .icon-btn{color:#e9edef !important}
+#chatName{color:#e9edef !important;font-weight:600}#chatStatus{color:#8696a0 !important}
+.bubble.sent{background:#005c4b !important;color:#e9edef !important;border-radius:12px 12px 4px 12px !important}
+.bubble.received{background:#202c33 !important;color:#e9edef !important;border-radius:12px 12px 12px 4px !important}
+.bubble .msg-time,.bubble.sent .msg-time{color:rgba(233,237,239,.6) !important}
+.ticks{font-size:12px;letter-spacing:-2px}
+#inputArea{background:transparent !important;border-top:none !important;gap:8px;align-items:flex-end}
+#msgInput{background:#202c33 !important;border:none !important;border-radius:24px !important;color:#e9edef !important;padding:12px 18px !important}
+#imgBtn{background:#202c33;border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center}
+#sendBtn{background:#00a884 !important;color:#fff !important;border:none !important;border-radius:50% !important;width:48px !important;height:48px !important;flex-shrink:0}
+#cmenu{position:fixed;top:60px;right:10px;background:#1f2c34;border-radius:14px;min-width:270px;padding:8px 0;z-index:960;box-shadow:0 6px 24px rgba(0,0,0,.55)}
+.cm-item{padding:15px 24px;font-size:16px;color:#e9edef;cursor:pointer}.cm-item:active{background:#2a3942}.cm-item.sep{border-top:1px solid #2a3942}
+</style>
+<style id="wa-skin2">
+#inputArea{padding:6px 8px calc(8px + env(safe-area-inset-bottom)) !important}
+#pill{flex:1;min-width:0;display:flex;align-items:flex-end;background:#202c33;border-radius:26px;padding:0 6px}
+#pill #msgInput{background:transparent !important;flex:1;min-width:0;padding:12px 6px !important}
+.pbtn,#pill #imgBtn{padding:11px 8px;font-size:22px;cursor:pointer;color:#8696a0;background:transparent !important;width:auto !important;height:auto !important;border-radius:0 !important}
+#recbar{flex:1;display:flex;align-items:center;gap:14px;background:#202c33;border-radius:26px;padding:12px 18px;color:#e9edef}
+</style>
+<style id="wa-skin3">
+.msg-meta-name,.msg-meta-number,.msg-avatar{cursor:pointer}
+</style>
+<style id="wa-skin4">
+#lightbox-img{touch-action:none}
+</style>
+<style id="wa-quote">
+.reply-quote{border-left:4px solid #06cf9c;background:rgba(0,0,0,.22);border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:13px;max-width:100%}
+.reply-quote-name{color:#06cf9c;font-weight:600;font-size:12.5px}
+.reply-quote-text{color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+<style id="wa-group">
+.msg-wrap{min-width:0;max-width:88% !important}
+.msg-col{min-width:0;max-width:100%}
+.bubble{max-width:100%;min-width:0;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;font-size:15.5px;line-height:1.38;padding:7px 10px 6px !important}
+.reply-quote{box-sizing:border-box;width:100%;min-width:min(200px,100%);overflow:hidden}
+.reply-quote-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reply-quote-text{white-space:normal !important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:clip !important;word-break:break-word}
+.msg-meta{margin-bottom:2px;gap:8px;max-width:100%}
+.msg-meta-name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55vw}
+.adm-tag{margin-left:auto;font-size:11px;color:#8696a0;padding-left:10px;white-space:nowrap}
+.msg-time{font-size:11px;margin-top:2px}
+.sys-msg{align-self:center;max-width:86%;text-align:center;background:#182229;color:#8696a0;font-size:12.5px;padding:6px 14px;border-radius:12px;margin:8px auto}
+.mention{color:#53bdeb;font-weight:600}
+#chatStatus{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.msg-wrap.cont .msg-meta{display:none}
+.msg-wrap.noav .msg-avatar{visibility:hidden}
+body.dm .msg-meta,body.dm .msg-avatar{display:none !important}
+</style>
 </head>
 <body>
 
   <!-- HEADER -->
   <div id="header">
-    <div class="icon-btn" style="color:var(--gold);font-size:20px" onclick="location.href='/'">←</div>
+    <div class="icon-btn" style="color:var(--gold);font-size:20px" onclick="history.length > 1 ? history.back() : location.href='/'">←</div>
     <div class="avatar" id="avatar" style="width:42px;height:42px;font-size:18px;border-color:var(--gold-dim);border-radius:50%">?</div>
-    <div id="header-info">
+    <div id="header-info" onclick="location.href = (chatId.endsWith('@g.us') ? '/group.html?id=' : '/contact.html?id=') + encodeURIComponent(chatId)" style="cursor:pointer">
       <div id="chatName">Cargando...</div>
       <div id="chatStatus">WhatsApp</div>
     </div>
-    <div class="icon-btn" onclick="scrollToBottom()" style="font-size:18px">↓</div>
+    <div class="icon-btn" id="hdrVideo" onclick="callPeer(true)" style="font-size:20px;padding:6px 8px">📹</div><div class="icon-btn" id="hdrCall" onclick="callPeer(false)" style="font-size:20px;padding:6px 8px">📞</div><div class="icon-btn" onclick="toggleChatMenu(event)" style="font-size:22px;padding:6px 10px">⋮</div>
   </div>
 
   <!-- MENSAJES -->
@@ -221,10 +273,15 @@
 
   <!-- INPUT -->
   <div id="inputArea">
-    <div id="imgBtn" onclick="document.getElementById('imgInput').click()">📎</div>
-    <input type="file" id="imgInput" accept="image/*,video/*,audio/*" style="display:none">
-    <textarea id="msgInput" placeholder="Escribe un mensaje..." rows="1" autocomplete="off"></textarea>
-    <button id="sendBtn" onclick="sendMessage()">➤</button>
+    <div id="pill">
+      <div class="pbtn" onclick="toggleEmoji()">😊</div>
+      <textarea id="msgInput" placeholder="Mensaje" rows="1" autocomplete="off"></textarea>
+      <div class="pbtn" id="imgBtn" onclick="document.getElementById('imgInput').click()">📎</div>
+      <div class="pbtn" id="camBtn" onclick="document.getElementById('camInput').click()">📷</div>
+    </div>
+    <input type="file" id="imgInput" accept="*/*" style="display:none">
+    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none">
+    <button id="sendBtn" onclick="sendOrRecord()">🎤</button>
   </div>
 
   <!-- LIGHTBOX -->
@@ -247,6 +304,29 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/socket.js"></script>
+<div id="gsheet" onclick="if(event.target===this)this.classList.remove('open')"><div id="gbox"><div id="gtitle"></div><div id="gmeta"></div><div id="gdesc"></div><div id="gmembers"></div></div></div>
+<style>#gsheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:flex-end}#gsheet.open{display:flex}#gbox{background:var(--surface);width:100%;max-height:80dvh;overflow:auto;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}#gtitle{font-size:20px;font-weight:700;color:var(--gold)}#gmeta,#gdesc{color:var(--text-dim);font-size:13px;margin:6px 0}#gmembers div{padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}.adm{color:var(--gold);font-size:12px}</style>
+<script>
+async function openGroupInfo() {
+  if (!chatId.endsWith('@g.us')) return
+  document.getElementById('gsheet').classList.add('open')
+  const t = document.getElementById('gtitle'); t.textContent = 'Cargando...'
+  try {
+    const g = await (await fetch('/group/' + encodeURIComponent(chatId))).json()
+    if (!g.ok) { t.textContent = 'No se pudo cargar'; return }
+    t.textContent = g.subject
+    document.getElementById('gmeta').textContent = g.size + ' participantes' + (g.creation ? ' · creado ' + new Date(g.creation * 1000).toLocaleDateString() : '')
+    document.getElementById('gdesc').textContent = g.desc
+    const m = document.getElementById('gmembers'); m.innerHTML = ''
+    g.participants.sort((a, b) => !!b.admin - !!a.admin).forEach(p => {
+      const d = document.createElement('div'), n = document.createElement('span')
+      n.textContent = '+' + p.id.split('@')[0].split(':')[0]; d.appendChild(n)
+      if (p.admin) { const a = document.createElement('span'); a.className = 'adm'; a.textContent = p.admin === 'superadmin' ? 'Creador' : 'Admin'; d.appendChild(a) }
+      m.appendChild(d)
+    })
+  } catch { t.textContent = 'Error de conexión' }
+}
+</script>
   <script src="/js/ui.js"></script>
   <script src="/js/chat.js"></script>
 </body>

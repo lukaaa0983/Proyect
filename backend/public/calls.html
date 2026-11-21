@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Llamadas · Proyecto G</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <style>
+    .call { display:flex; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--border); }
+    .call-ic { width:46px; height:46px; border-radius:50%; background:var(--surface3); display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .call-info { flex:1; min-width:0; }
+    .call-num { font-weight:600; }
+    .call-st { font-size:13px; color:var(--text-dim); margin-top:2px; }
+    .call-st.bad { color:var(--red); }
+    .call-time { font-size:12px; color:var(--text-dim); }
+    .nav-item { flex:1; padding:12px; text-align:center; cursor:pointer; color:var(--text-dim); font-size:12px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .nav-item.active { color:var(--gold); }
+    .nav-item div:first-child { font-size:24px; }
+    .call.sel { background: var(--surface2); }
+    .call.sel .call-ic { background: var(--gold); }
+    .call { user-select: none; -webkit-user-select: none; }
+    #topbar { display: flex; align-items: center; justify-content: space-between; }
+    .tb { padding: 8px 12px; border-radius: 16px; background: var(--surface3); font-size: 13px; cursor: pointer; }
+    #selact { display: none; align-items: center; gap: 10px; flex: 1; justify-content: space-between; }
+    .selecting #topact, .selecting #brand { display: none; }
+    .selecting #selact { display: flex; }
+  </style>
+<style id="wa-nav">
+#bottomNav{background:#0b141a !important;border-top:1px solid #1c272e !important;padding-top:6px}
+#bottomNav .nav-item{color:#8696a0 !important;font-size:12px !important;padding:6px 0 4px !important;gap:2px !important}
+#bottomNav .nav-item > div:first-child{width:58px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:20px !important;filter:grayscale(1);opacity:.75;transition:.2s}
+#bottomNav .nav-item.active{color:#e9edef !important;font-weight:600}
+#bottomNav .nav-item.active > div:first-child{background:#103629;filter:none;opacity:1}
+#ctxMenu{background:#1f2c34 !important;border:none !important;border-radius:16px !important;box-shadow:0 8px 28px rgba(0,0,0,.6) !important}
+.ctx-item{color:#e9edef !important;border-bottom:none !important;padding:15px 22px !important;font-size:16px}
+.ctx-item:active{background:#2a3942 !important}
+#archbar{display:none;align-items:center;gap:18px;padding:14px 16px;background:#0b141a;color:#e9edef;font-size:20px;font-weight:600}
+body.arch-mode #topbar,body.arch-mode #fab{display:none !important}
+body.arch-mode #archbar{display:flex}
+</style>
+</head>
+<body>
+  <div id="topbar"><div id="brand"><div id="brand-icon">📞</div><div id="title">Llamadas</div></div><div id="topact"><span class="tb" onclick="delAll()">Borrar todo</span></div><div id="selact"><span class="tb" onclick="clearSel()">✕</span><b id="selcount"></b><span class="tb" onclick="delSel()">🗑 Borrar</span></div></div>
+  <div style="display:flex;gap:8px;padding:10px 16px"><span id="cf0" class="chip on" onclick="setMiss(false)" style="padding:7px 14px;border-radius:16px;background:#00a884;color:#000;font-size:13px;cursor:pointer">Todas</span><span id="cf1" class="chip" onclick="setMiss(true)" style="padding:7px 14px;border-radius:16px;background:var(--surface2);font-size:13px;cursor:pointer">Perdidas</span></div>
+  <div id="chatList"><div id="emptyState" style="display:none"><div class="empty-icon">📞</div><p>Sin llamadas todavía.<br>Las llamadas que recibas<br>aparecerán aquí.</p></div></div>
+  <div id="bottomNav" style="display:flex;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0">
+    <div class="nav-item" onclick="location.href='/'"><div>💬</div><div>Chats</div></div>
+    <div class="nav-item" onclick="location.href='/statuses.html'"><div>📢</div><div>Estados</div></div>
+    <div class="nav-item active"><div>📞</div><div>Llamadas</div></div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const ST = { offer: ['Entrante', false], accept: ['Contestada', false], reject: ['Rechazada', true], timeout: ['Perdida', true], terminate: ['Finalizada', false] }
+    let calls = []
+    const sel = new Set()
+    let onlyMissed = false
+    function setMiss(v) {
+      onlyMissed = v
+      const a = document.getElementById('cf0'), b = document.getElementById('cf1')
+      a.style.background = v ? 'var(--surface2)' : '#00a884'; a.style.color = v ? '' : '#000'
+      b.style.background = v ? '#00a884' : 'var(--surface2)'; b.style.color = v ? '#000' : ''
+      render()
+    }
+    function updateBar() { document.body.classList.toggle('selecting', sel.size > 0); document.getElementById('selcount').textContent = sel.size + ' seleccionada' + (sel.size > 1 ? 's' : '') }
+    function toggle(id) { sel.has(id) ? sel.delete(id) : sel.add(id); updateBar(); render() }
+    function clearSel() { sel.clear(); updateBar(); render() }
+    function send(ids) { return fetch('/calls/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) }) }
+    async function delSel() { if (!confirm('¿Borrar las llamadas seleccionadas?')) return; const ids = [...sel]; await send(ids); calls = calls.filter(c => !ids.includes(c.id)); clearSel() }
+    async function delAll() { if (!calls.length || !confirm('¿Borrar todo el registro de llamadas?')) return; await send(null); calls = []; render() }
+
+    function row(c) {
+      const [label, bad] = ST[c.status] || [c.status, false]
+      const num = (c.from || '').split('@')[0].split(':')[0]
+      const d = new Date(c.date || Date.now())
+      const el = document.createElement('div')
+      el.className = 'call'
+      el.innerHTML = `<div class="call-ic" onclick="event.stopPropagation();location.href='tel:+${num}'">${c.isVideo ? '📹' : '📞'}</div>
+        <div class="call-info"><div class="call-num"></div><div class="call-st ${bad ? 'bad' : ''}">${c.isGroup ? 'Grupo · ' : ''}${label}</div></div>
+        <div class="call-time">${d.toLocaleDateString([], { day: '2-digit', month: 'short' })}<br>${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`
+      el.querySelector('.call-num').textContent = c.name || (num ? '+' + num : 'Desconocido')
+      let t, lp = false
+      el.addEventListener('touchstart', () => { lp = false; t = setTimeout(() => { lp = true; navigator.vibrate?.(15); toggle(c.id) }, 450) }, { passive: true })
+      ;['touchend', 'touchmove', 'touchcancel'].forEach(ev => el.addEventListener(ev, () => clearTimeout(t), { passive: true }))
+      el.onclick = () => { if (lp) { lp = false; return } if (sel.size) toggle(c.id); else if (c.from) fetch('/api/resolve?jid=' + encodeURIComponent(c.from) + '&name=' + encodeURIComponent(c.name || '')).then(r => r.json()).then(r => { location.href = '/chat.html?id=' + encodeURIComponent(r.id) }) }
+      el.addEventListener('contextmenu', e => e.preventDefault())
+      if (sel.has(c.id)) el.classList.add('sel')
+      return el
+    }
+
+    function render() {
+      const list = document.getElementById('chatList')
+      list.querySelectorAll('.call').forEach(n => n.remove())
+      document.getElementById('emptyState').style.display = calls.length ? 'none' : 'block'
+      calls.filter(c => !onlyMissed || c.status === 'timeout' || c.status === 'reject').forEach(c => list.appendChild(row(c)))
+    }
+
+    fetch('/calls').then(r => r.json()).then(d => { calls = d; render() })
+    const sock = io()
+    sock.on('calls_deleted', ids => { calls = ids ? calls.filter(c => !ids.includes(c.id)) : []; render() })
+    sock.on('call_update', c => {
+      const i = calls.findIndex(x => x.id === c.id)
+      if (i >= 0) calls[i] = c; else calls.unshift(c)
+      render()
+    })
+    window.addEventListener('pageshow', e => { if (e.persisted) location.reload() })
+  </script>
+<script>
+;(function () {
+  const idx = location.pathname.startsWith('/status') ? 1 : location.pathname.startsWith('/calls') ? 2 : 0
+  document.querySelectorAll('#bottomNav .nav-item').forEach((e, i) => e.classList.toggle('active', i === idx))
+})()
+</script>
+<script>
+;(function () {
+  function badge(i, n) {
+    const it = document.querySelectorAll('#bottomNav .nav-item')[i]
+    if (!it) return
+    const ic = it.firstElementChild
+    let b = ic.querySelector('.nbadge')
+    if (!n) { if (b) b.remove(); return }
+    if (!b) {
+      b = document.createElement('span')
+      b.className = 'nbadge'
+      b.style.cssText = 'position:absolute;top:-4px;right:2px;background:#00a884;color:#0b141a;border-radius:9px;font-size:11px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center'
+      ic.style.position = 'relative'
+      ic.appendChild(b)
+    }
+    b.textContent = n > 99 ? '99+' : n
+  }
+  async function tick() {
+    try {
+      const cs = JSON.parse(localStorage.getItem('chatState') || '{}')
+      badge(0, Object.values(cs).reduce((a, s) => a + (s.unread || 0), 0))
+    } catch (e) {}
+    try {
+      const onCalls = location.pathname.startsWith('/calls')
+      const seen = +localStorage.getItem('callsSeen') || 0
+      if (onCalls) localStorage.setItem('callsSeen', Date.now())
+      const calls = await (await fetch('/calls')).json()
+      badge(2, onCalls ? 0 : calls.filter(c => (c.status === 'timeout' || c.status === 'reject') && (c.date || 0) > seen).length)
+    } catch (e) {}
+  }
+  tick()
+  setInterval(tick, 5000)
+})()
+</script>
+</body>
+</html>

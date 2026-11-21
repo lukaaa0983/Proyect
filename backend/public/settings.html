@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajustes</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0b1014;color:#e9edef;font-family:system-ui,sans-serif;height:100dvh;overflow-y:auto}
+#top{display:flex;align-items:center;gap:18px;padding:14px 16px;font-size:22px;position:sticky;top:0;background:#0b1014}
+#top b{font-size:20px;font-weight:600}.back{cursor:pointer;padding:0 6px}
+.sec{padding:18px 20px 8px;color:#00a884;font-size:14px}
+.row{display:flex;align-items:center;gap:16px;padding:15px 20px;cursor:pointer}.row:active{background:#18222a}
+.rt{flex:1;font-size:17px}.rs{color:#8696a0;font-size:14px;margin-top:3px}
+.sw{width:50px;height:28px;border-radius:14px;border:2px solid #8696a0;position:relative;flex-shrink:0}.sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#8696a0;transition:.2s}.sw.on{border-color:#00a884;background:#00a88433}.sw.on:after{left:25px;background:#00a884}
+.opts{display:flex;gap:12px;padding:6px 20px 14px;flex-wrap:wrap}.dot{width:42px;height:42px;border-radius:50%;border:3px solid transparent;cursor:pointer}.dot.on{border-color:#00a884}
+.btn{padding:9px 18px;border-radius:18px;background:#1f2a31;cursor:pointer}.btn.on{background:#00a884;color:#000}
+#toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#2a3942;padding:10px 18px;border-radius:20px;display:none;font-size:14px}
+</style>
+</head>
+<body>
+<div id="top"><span class="back" onclick="history.length>1?history.back():location.href='/'">←</span><b>Ajustes</b></div>
+<div id="app"></div><div id="toast"></div>
+<script>
+const $ = s => document.getElementById(s)
+const DEF = { wall: 'doodle', font: 15, enterSend: true, notif: false, sound: true }
+const get = () => { try { return { ...DEF, ...JSON.parse(localStorage.getItem('settings') || '{}') } } catch { return { ...DEF } } }
+const put = p => { localStorage.setItem('settings', JSON.stringify({ ...get(), ...p })); render() }
+const WALLS = ['doodle', '#0b141a', '#13231c', '#1e1a2b', '#2a1f1f', '#10202b']
+function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200) }
+async function toggleNotif() {
+  const s = get()
+  if (!s.notif && window.Notification && Notification.permission !== 'granted') {
+    const p = await Notification.requestPermission()
+    if (p !== 'granted') { toast('Permiso de notificaciones denegado'); return }
+  }
+  put({ notif: !s.notif })
+}
+function render() {
+  const s = get()
+  const sw = (on, fn) => '<div class="sw ' + (on ? 'on' : '') + '" onclick="' + fn + '"></div>'
+  const tgl = (t, sub, on, fn) => '<div class="row" onclick="' + fn + '"><div class="rt">' + t + (sub ? '<div class="rs">' + sub + '</div>' : '') + '</div>' + sw(on, '') + '</div>'
+  $('app').innerHTML =
+    '<div class="row" onclick="location.href=\'/profile.html\'"><div class="rt">👤 Perfil<div class="rs">Nombre, info y foto</div></div></div>' +
+    '<div class="row" onclick="location.href=\'/starred.html\'"><div class="rt">⭐ Mensajes destacados</div></div>' +
+    '<div class="sec">Chats</div><div class="rt" style="padding:0 20px">Fondo de pantalla</div><div class="opts">' +
+    WALLS.map(w => '<div class="dot ' + (s.wall === w ? 'on' : '') + '" style="background:' + (w === 'doodle' ? 'linear-gradient(135deg,#0b141a,#1f2c34)' : w) + '" onclick="put({wall:\'' + w + '\'})"></div>').join('') + '</div>' +
+    '<div class="rt" style="padding:0 20px">Tamaño de letra</div><div class="opts">' +
+    [[13, 'Pequeña'], [15, 'Mediana'], [18, 'Grande']].map(([n, l]) => '<div class="btn ' + (s.font === n ? 'on' : '') + '" onclick="put({font:' + n + '})">' + l + '</div>').join('') + '</div>' +
+    tgl('La tecla Enter envía', 'Si lo apagas, Enter hace un salto de línea', s.enterSend, 'put({enterSend:' + !s.enterSend + '})') +
+    '<div class="sec">Notificaciones</div>' +
+    tgl('Notificaciones de mensajes', 'Funcionan con el panel abierto en el navegador', s.notif, 'toggleNotif()') +
+    tgl('Sonido', '', s.sound, 'put({sound:' + !s.sound + '})') +
+    '<div class="sec">Datos</div>' +
+    '<div class="row" onclick="resetAll()"><div class="rt" style="color:#ff5c5c">Restablecer ajustes</div></div>'
+  document.querySelectorAll('.sw').forEach(e => e.removeAttribute('onclick'))
+}
+function resetAll() { if (confirm('¿Restablecer todos los ajustes?')) { localStorage.removeItem('settings'); render() } }
+render()
+</script>
+</body>
+</html>

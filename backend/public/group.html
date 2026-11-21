@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Info del grupo</title>
+<link rel="stylesheet" href="/css/variables.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;height:100dvh;overflow-y:auto}
+#top{position:sticky;top:0;background:var(--bg);padding:12px 16px;font-size:22px;color:var(--gold);z-index:5;cursor:pointer}
+#head{text-align:center;padding:4px 16px 12px}
+#av{width:110px;height:110px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto 12px}
+#name{font-size:24px;font-weight:700}.dim{color:var(--text-dim);font-size:13px}#desc{margin-top:8px;font-size:14px}.green{color:var(--gold);cursor:pointer}
+#acts{display:flex;gap:10px;justify-content:center;padding:8px 12px 14px}
+.act{background:var(--surface2);border-radius:16px;padding:12px 8px;text-align:center;font-size:12px;cursor:pointer;flex:1;max-width:90px}.act b{display:block;font-size:20px;margin-bottom:4px}
+#tabs{display:flex;border-bottom:1px solid var(--border);position:sticky;top:48px;background:var(--bg);z-index:4}
+#tabs div{flex:1;text-align:center;padding:13px 4px;color:var(--text-dim);font-size:14px;cursor:pointer;border-bottom:2px solid transparent}#tabs .on{color:var(--gold);border-color:var(--gold)}
+.sec{padding:14px 16px 6px;color:var(--text-dim);font-size:13px}
+.row{display:flex;align-items:center;gap:14px;padding:12px 16px;cursor:pointer}.row:active{background:var(--surface2)}
+.ic{width:44px;height:44px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.grow{flex:1;min-width:0}.tag{border:1px solid var(--gold-dim);color:var(--gold);border-radius:6px;padding:2px 8px;font-size:11px;white-space:nowrap}
+.red{color:#ff5c5c}.badge{background:var(--gold);color:#000;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:700}
+#q{width:calc(100% - 32px);margin:8px 16px;padding:11px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;outline:none}
+.chips{display:flex;gap:8px;padding:10px 16px}.chip{padding:7px 14px;border-radius:16px;background:var(--surface2);font-size:13px;cursor:pointer}.chip.on{background:var(--gold);color:#000}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 3px}.grid img,.grid video{width:100%;aspect-ratio:1;object-fit:cover}
+.sw{width:46px;height:26px;border-radius:13px;background:var(--surface3);position:relative;flex-shrink:0}.sw:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#888;transition:.2s}.sw.on{background:var(--gold-dim)}.sw.on:after{left:23px;background:var(--gold)}
+#sheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:flex-end}#sheet.open{display:flex}
+#sbox{background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom))}#sbox .row{padding:16px 20px}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface3);padding:10px 18px;border-radius:20px;display:none;z-index:60;font-size:14px}
+</style>
+</head>
+<body>
+<div id="top" onclick="history.back()">←</div>
+<div id="head"><div id="av">👥</div><div id="name">Cargando...</div><div class="dim" id="sub"></div><div id="desc"></div></div>
+<div id="acts"></div>
+<div id="tabs"><div id="t0" onclick="setTab(0)">Miembros</div><div id="t1" onclick="setTab(1)">Multimedia</div><div id="t2" onclick="setTab(2)">Ajustes</div></div>
+<div id="app"></div>
+<div id="sheet" onclick="if(event.target===this)this.classList.remove('open')"><div id="sbox"></div></div>
+<div id="toast"></div>
+<script>
+const id = new URLSearchParams(location.search).get('id')
+let g = null, reqs = [], tab = +(new URLSearchParams(location.search).get('tab')) || (id.endsWith('@g.us') ? 0 : 1), mf = 'img', filt = '', msgs = []
+const $ = s => document.getElementById(s)
+const num = j => '+' + String(j || '').split('@')[0].split(':')[0]
+const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML }
+const pname = p => p.isMe ? 'Tú' : (p.name || num(p.phone))
+function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200) }
+async function act(type, extra = {}) {
+  const r = await (await fetch('/group/' + encodeURIComponent(id) + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, ...extra }) })).json()
+  if (!r.ok) toast(r.error || 'No se pudo completar'); return r
+}
+function sheet(items) {
+  $('sbox').innerHTML = ''
+  items.forEach(([label, fn, red]) => { const d = document.createElement('div'); d.className = 'row' + (red ? ' red' : ''); d.textContent = label; d.onclick = () => { $('sheet').classList.remove('open'); fn() }; $('sbox').appendChild(d) })
+  $('sheet').classList.add('open')
+}
+const canEdit = () => g && (g.meAdmin || !g.restrict)
+function setTab(i) { tab = i; render() }
+
+async function load() {
+  const chat = await (await fetch('/chat/' + encodeURIComponent(id))).json()
+  msgs = chat.messages
+  if (id.endsWith('@g.us')) {
+    g = await (await fetch('/api/group/' + encodeURIComponent(id))).json()
+    if (!g.ok) { $('name').textContent = 'No se pudo cargar'; return }
+    reqs = g.meAdmin ? ((await act('requests')).list || []) : []
+  } else {
+    g = { ok: true, subject: chat.name || num(id), desc: '', size: 2, participants: [], restrict: true, meAdmin: false, announce: false, approval: false, ephemeral: 0, owner: null }
+  }
+  render()
+}
+
+function render() {
+  $('name').innerHTML = esc(g.subject) + (canEdit() ? ' <span class="green" onclick="editName()">✎</span>' : '')
+  $('sub').textContent = id.endsWith('@g.us') ? 'Grupo · ' + g.size + ' miembros' : num(id)
+  $('desc').innerHTML = g.desc ? esc(g.desc) + (canEdit() ? ' <span class="green" onclick="editDesc()">✎</span>' : '') : (canEdit() ? '<span class="green" onclick="editDesc()">Añadir descripción del grupo</span>' : '')
+  $('acts').innerHTML = (g.meAdmin ? '<div class="act" onclick="addMembers()"><b>➕</b>Añadir</div><div class="act" onclick="invite()"><b>🔗</b>Enlace</div>' : '') + '<div class="act" onclick="setTab(0);setTimeout(()=>$(\'q\')?.focus(),50)"><b>🔍</b>Buscar</div><div class="act" onclick="exportChat()"><b>📤</b>Exportar</div>'
+  ;[0, 1, 2].forEach(i => $('t' + i).className = i === tab ? 'on' : '')
+  $('t0').style.display = id.endsWith('@g.us') ? '' : 'none'
+  $('app').innerHTML = [tabMembers, tabMedia, tabSettings][tab]()
+  if (tab === 0) list()
+  if (tab === 1) fillMedia()
+}
+
+function tabMembers() {
+  let h = `<input id="q" placeholder="Buscar miembros" value="${esc(filt)}" oninput="filt=this.value;list()"><div class="sec">${g.size} miembros</div>`
+  if (g.meAdmin) h += `<div class="row" onclick="addMembers()"><div class="ic">➕</div><div class="grow">Añadir miembros</div></div>`
+  if (reqs.length) h += `<div class="row" onclick="showReqs()"><div class="ic">⏳</div><div class="grow">Solicitudes pendientes</div><span class="badge">${reqs.length}</span></div>`
+  return h + '<div id="plist"></div>'
+}
+function list() {
+  const f = filt.toLowerCase()
+  const ps = g.participants.map((p, i) => ({ p, i })).filter(({ p }) => !f || (pname(p) + p.phone).toLowerCase().includes(f)).sort((a, b) => (b.p.isMe - a.p.isMe) || (!!b.p.admin - !!a.p.admin))
+  $('plist').innerHTML = ps.map(({ p, i }) => `<div class="row" onclick="member(${i})"><div class="ic">👤</div><div class="grow">${esc(pname(p))}${!p.isMe && p.name ? '<div class="dim">' + esc(num(p.phone)) + '</div>' : ''}</div>${p.admin ? '<span class="tag">' + (p.admin === 'superadmin' ? 'Creador' : 'Admin. del grupo') + '</span>' : ''}</div>`).join('')
+}
+
+function tabMedia() {
+  const c = k => `<div class="chip ${mf === k ? 'on' : ''}" onclick="mf='${k}';render()">`
+  return `<div class="chips">${c('img')}Fotos y videos</div>${c('aud')}Audios</div>${c('lnk')}Enlaces</div></div><div id="mbox"></div>`
+}
+function fillMedia() {
+  const box = $('mbox'), ms = msgs.filter(m => m.mediaUrl).reverse()
+  if (mf === 'lnk') {
+    const ls = msgs.flatMap(m => ((m.content || '').match(/https?:\/\/[^\s]+/g) || []).map(u => ({ u, m }))).reverse()
+    box.innerHTML = ls.length ? ls.map(({ u, m }) => `<div class="row"><div class="ic">🔗</div><div class="grow"><a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--gold);word-break:break-all">${esc(u)}</a><div class="dim">${esc(m.senderName || '')} · ${new Date(m.timestamp).toLocaleDateString()}</div></div></div>`).join('') : '<div class="sec">Sin enlaces</div>'
+    return
+  }
+  if (mf === 'aud') {
+    const as = ms.filter(m => /\.(ogg|mp3|m4a)$/.test(m.mediaUrl))
+    box.innerHTML = as.length ? as.map(m => `<div class="row"><div class="grow"><div class="dim">${esc(m.senderName || '')} · ${new Date(m.timestamp).toLocaleString()}</div><audio controls src="${esc(m.mediaUrl)}" style="width:100%"></audio></div></div>`).join('') : '<div class="sec">Sin audios</div>'
+    return
+  }
+  const vs = ms.filter(m => /\.(jpe?g|png|webp|gif|mp4|webm)$/.test(m.mediaUrl))
+  box.innerHTML = vs.length ? '<div class="grid">' + vs.map(m => /\.(mp4|webm)$/.test(m.mediaUrl) ? `<video src="${esc(m.mediaUrl)}" controls preload="metadata"></video>` : `<img src="${esc(m.mediaUrl)}" loading="lazy" onclick="window.open(this.src)">`).join('') + '</div>' : '<div class="sec">Sin fotos ni videos</div>'
+}
+
+function tabSettings() {
+  const sw = (on, fn) => `<div class="sw ${on ? 'on' : ''}" onclick="${fn}"></div>`
+  const mute = localStorage.getItem('mute:' + id) === '1'
+  let h = `<div class="row"><div class="grow">Silenciar notificaciones<div class="dim">Solo en este dispositivo</div></div>${sw(mute, 'tmute()')}</div>`
+  if (g.meAdmin) h += `<div class="sec">Ajustes del grupo</div>
+    <div class="row"><div class="grow">Solo admins editan la info<div class="dim">Nombre y descripción</div></div>${sw(g.restrict, "tg('locked')")}</div>
+    <div class="row"><div class="grow">Solo admins envían mensajes</div>${sw(g.announce, "tg('announce')")}</div>
+    <div class="row"><div class="grow">Aprobar nuevos miembros</div>${sw(g.approval, "tg('approval')")}</div>
+    <div class="row" onclick="ephem()"><div class="grow">Mensajes temporales<div class="dim">${({0:'Desactivados',86400:'24 horas',604800:'7 días',7776000:'90 días'})[g.ephemeral] || 'Activados'}</div></div></div>
+    <div class="row" onclick="revoke()"><div class="grow">Restablecer enlace de invitación</div></div>`
+  h += `<div class="sec"></div><div class="row" onclick="exportChat()"><div class="ic">📤</div><div class="grow">Exportar chat</div></div>
+    <div class="row" onclick="clearChat()"><div class="ic red">⊖</div><div class="grow red">Vaciar chat</div></div>
+    <div class="row" onclick="leave()"><div class="ic red">↪</div><div class="grow red">Salir del grupo</div></div>
+    <div class="dim" style="padding:16px">Creado${g.owner ? ' por ' + esc(g.owner.isMe ? 'ti' : (g.owner.name || num(g.owner.phone))) : ''}, ${g.creation ? new Date(g.creation * 1000).toLocaleDateString() : ''}</div>`
+  return h
+}
+
+function tmute() { const k = 'mute:' + id; localStorage.getItem(k) === '1' ? localStorage.removeItem(k) : localStorage.setItem(k, '1'); render() }
+async function editName() { const v = prompt('Nombre del grupo', g.subject); if (v && v.trim()) { if ((await act('subject', { value: v.trim() })).ok) load() } }
+async function editDesc() { const v = prompt('Descripción del grupo', g.desc); if (v !== null) { if ((await act('desc', { value: v })).ok) load() } }
+async function addMembers() { const v = prompt('Números a añadir (con código de país, separados por coma)'); if (!v) return; const ids = v.split(',').map(x => x.replace(/\D/g, '')).filter(Boolean); if (ids.length && (await act('add', { ids })).ok) { toast('Solicitud enviada'); load() } }
+async function tg(k) { const cur = { locked: g.restrict, announce: g.announce, approval: g.approval }[k]; if ((await act(k, { value: !cur })).ok) load() }
+function ephem() { sheet([['Desactivados', () => se(0)], ['24 horas', () => se(86400)], ['7 días', () => se(604800)], ['90 días', () => se(7776000)]]) }
+async function se(v) { if ((await act('ephemeral', { value: v })).ok) load() }
+async function invite() { const r = await act('invite'); if (r.ok) { const url = 'https://chat.whatsapp.com/' + r.code; try { await navigator.clipboard.writeText(url); toast('Enlace copiado') } catch { prompt('Enlace del grupo', url) } } }
+async function revoke() { if (confirm('¿Restablecer el enlace? El anterior dejará de funcionar.') && (await act('revoke')).ok) toast('Enlace restablecido') }
+async function openChatOf(p, path) {
+  const j = p.phone && !String(p.phone).endsWith('@lid') ? String(p.phone).split('@')[0].split(':')[0] + '@s.whatsapp.net' : p.id
+  const r = await (await fetch('/api/resolve?jid=' + encodeURIComponent(j) + '&name=' + encodeURIComponent(p.name || ''))).json()
+  location.href = path + encodeURIComponent(r.id)
+}
+function member(i) {
+  const p = g.participants[i]; if (p.isMe) return
+  const real = p.phone && !String(p.phone).endsWith('@lid') ? String(p.phone).split('@')[0].split(':')[0].replace(/\D/g, '') : ''
+  const items = [
+    ['Enviar mensaje a ' + pname(p), () => openChatOf(p, '/chat.html?id=')],
+    ['Llamada de voz a ' + pname(p), () => { if (real) location.href = 'tel:+' + real; else toast('No tengo el número') }],
+    ['Videollamada a ' + pname(p), () => { if (real) window.open('https://wa.me/' + real); else toast('No tengo el número') }],
+    ['Ver a ' + pname(p), () => openChatOf(p, '/contact.html?id=')],
+    ['Copiar número', () => navigator.clipboard?.writeText(num(p.phone)).then(() => toast('Número copiado'))]
+  ]
+  if (g.meAdmin) items.push([p.admin ? 'Quitar como admin del grupo' : 'Hacer admin del grupo', async () => { if ((await act(p.admin ? 'demote' : 'promote', { ids: [p.id] })).ok) load() }], ['Eliminar a ' + pname(p), async () => { if (confirm('¿Eliminar a ' + pname(p) + ' del grupo?') && (await act('remove', { ids: [p.id] })).ok) load() }, true])
+  menuDialog(items)
+}
+function menuDialog(items) {
+  const ov = document.createElement('div')
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px'
+  ov.onclick = e => { if (e.target === ov) ov.remove() }
+  const box = document.createElement('div')
+  box.style.cssText = 'width:100%;max-width:360px;background:#233138;border-radius:16px;padding:8px 0;box-shadow:0 10px 40px rgba(0,0,0,.6)'
+  items.forEach(([l, fn, red]) => {
+    const d = document.createElement('div')
+    d.textContent = l
+    d.style.cssText = 'padding:16px 24px;font-size:16px;cursor:pointer;color:' + (red ? '#ff5c5c' : '#e9edef')
+    d.onclick = () => { ov.remove(); if (fn) fn() }
+    box.appendChild(d)
+  })
+  ov.appendChild(box)
+  document.body.appendChild(ov)
+}
+function showReqs() { sheet(reqs.flatMap(r => { const j = r.jid || r.id; const n = num(r.phone_number || j); return [['✓ Aprobar ' + n, async () => { if ((await act('request', { ids: [j], value: 'approve' })).ok) load() }], ['✕ Rechazar ' + n, async () => { if ((await act('request', { ids: [j], value: 'reject' })).ok) load() }, true]] })) }
+function exportChat() {
+  const t = msgs.map(m => `[${new Date(m.timestamp).toLocaleString()}] ${m.fromMe ? 'Tú' : (m.senderName || '')}: ${m.content || (m.mediaUrl ? '<multimedia>' : '')}`).join('\n')
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' })); a.download = (g.subject || 'chat') + '.txt'; a.click()
+}
+async function clearChat() { if (!confirm('¿Vaciar todos los mensajes de este chat en el panel?')) return; await fetch('/chat/' + encodeURIComponent(id) + '/clear', { method: 'POST' }); msgs = []; toast('Chat vaciado'); render() }
+async function leave() { if (!confirm('¿Salir del grupo "' + g.subject + '"?')) return; if ((await act('leave')).ok) location.href = '/' }
+fetch('/api/pfp/' + encodeURIComponent(id)).then(r => r.json()).then(r => {
+  if (!r.url) return
+  const im = new Image()
+  im.onload = () => { $('av').innerHTML = ''; $('av').style.backgroundImage = 'url("' + r.url + '")'; $('av').style.backgroundSize = 'cover'; $('av').style.backgroundPosition = 'center' }
+  im.src = r.url
+}).catch(() => {})
+$('av').style.cursor = 'pointer'
+$('av').onclick = () => {
+  if (!id.endsWith('@g.us') || !g || !canEdit()) return
+  const f = document.createElement('input')
+  f.type = 'file'; f.accept = 'image/*'
+  f.onchange = () => {
+    const fl = f.files[0]
+    if (!fl) return
+    const fr = new FileReader()
+    fr.onload = async () => {
+      const r = await (await fetch('/api/group-photo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: id, photo: fr.result }) })).json()
+      toast(r.ok ? 'Foto actualizada' : (r.error || 'No se pudo cambiar'))
+      if (r.ok) setTimeout(() => location.reload(), 1200)
+    }
+    fr.readAsDataURL(fl)
+  }
+  f.click()
+}
+load()
+</script>
+</body>
+</html>

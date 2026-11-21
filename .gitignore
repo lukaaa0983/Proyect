@@ -1,0 +1,39 @@
+# Sesiones y credenciales
+sesion/
+secrets.jsonl
+.env
+.env.*
+*.pem
+*.key
+
+# Datos privados
+backend/data/chat.db*
+backend/data/pass.txt
+backend/data/media/
+backend/data/*.json
+backend/data/*.json.bak
+
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Logs
+*.log
+
+# Copias de seguridad: mantenerlas localmente, no subirlas
+*.bak
+*.bak*
+*.old
+*.tmp
+
+# Datos locales y privados
+backend/data/
+
+# Scripts temporales de desarrollo
+patch-*.js
+backup.sh
+run.sh
+
+# Dependencias de Node.js
+node_modules/
+**/node_modules/

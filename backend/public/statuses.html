@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/layout.css">
   <style>
-    body { display: flex; flex-direction: column; height: 100vh; }
+    body { display: flex; flex-direction: column; height: 100dvh; }
     #topbar { background: var(--surface); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     #topbar-title { font-size: 20px; font-weight: 700; }
     #statusesList { flex: 1; overflow-y: auto; }
@@ -30,7 +30,25 @@
     .status-info { flex: 1; }
     .status-name { font-weight: 600; font-size: 15px; color: var(--text); }
     .status-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+    #lightbox { height: 100dvh; }
+    #bottomNav { padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
+    #lightbox-footer { padding: 12px 16px calc(18px + env(safe-area-inset-bottom)); gap: 12px; }
+    #lightbox-footer .lb-btn { flex: 1; padding: 15px 10px; font-size: 15px; border-radius: 14px; background: var(--gold); color: #000; box-shadow: 0 2px 10px rgba(0,0,0,.6); }
+    #lightbox-footer .lb-btn:active { transform: scale(.97); }
   </style>
+<style id="wa-nav">
+#bottomNav{background:#0b141a !important;border-top:1px solid #1c272e !important;padding-top:6px}
+#bottomNav .nav-item{color:#8696a0 !important;font-size:12px !important;padding:6px 0 4px !important;gap:2px !important}
+#bottomNav .nav-item > div:first-child{width:58px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:20px !important;filter:grayscale(1);opacity:.75;transition:.2s}
+#bottomNav .nav-item.active{color:#e9edef !important;font-weight:600}
+#bottomNav .nav-item.active > div:first-child{background:#103629;filter:none;opacity:1}
+#ctxMenu{background:#1f2c34 !important;border:none !important;border-radius:16px !important;box-shadow:0 8px 28px rgba(0,0,0,.6) !important}
+.ctx-item{color:#e9edef !important;border-bottom:none !important;padding:15px 22px !important;font-size:16px}
+.ctx-item:active{background:#2a3942 !important}
+#archbar{display:none;align-items:center;gap:18px;padding:14px 16px;background:#0b141a;color:#e9edef;font-size:20px;font-weight:600}
+body.arch-mode #topbar,body.arch-mode #fab{display:none !important}
+body.arch-mode #archbar{display:flex}
+</style>
 </head>
 <body>
 
@@ -56,13 +74,17 @@
   </div>
 
   <div id="bottomNav">
-    <div class="nav-item" onclick="history.back()" style="color:var(--text-dim)">
+    <div class="nav-item" onclick="location.href='/'" style="color:var(--text-dim)">
       <div class="nav-icon">💬</div>
       <div>Chats</div>
     </div>
     <div class="nav-item active" style="color:var(--gold)">
       <div class="nav-icon">📢</div>
       <div>Estados</div>
+    </div>
+    <div class="nav-item" onclick="location.href='/calls.html'" style="flex:1;padding:12px;text-align:center;cursor:pointer;color:var(--text-dim);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="font-size:24px">📞</div>
+      <div>Llamadas</div>
     </div>
   </div>
 
@@ -161,5 +183,76 @@
 
     loadStatuses()
   </script>
+<div id="fab" onclick="statusMenu()" style="position:fixed;right:18px;bottom:90px;width:56px;height:56px;border-radius:50%;background:#00a884;color:#000;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:40;cursor:pointer">＋</div>
+<script>
+const SCOLORS = ['#128c7e', '#7b3fa0', '#c2410c', '#1d4ed8', '#be185d', '#4d7c0f']
+async function postStatus(body) {
+  const r = await (await fetch('/api/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json()
+  alert(r.ok ? 'Estado publicado para ' + r.to + ' contactos' : (r.error || 'No se pudo publicar'))
+}
+function statusMenu() {
+  const ov = document.createElement('div')
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:flex;align-items:flex-end'
+  ov.onclick = e => { if (e.target === ov) ov.remove() }
+  const box = document.createElement('div')
+  box.style.cssText = 'background:#1f2c34;width:100%;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom));color:#e9edef'
+  const rows = [
+    ['✏️ Estado de texto', () => { const t = prompt('Escribe tu estado'); if (t && t.trim()) postStatus({ text: t.trim(), color: SCOLORS[Math.floor(Math.random() * SCOLORS.length)] }) }],
+    ['📷 Foto o video', () => {
+      const f = document.createElement('input'); f.type = 'file'; f.accept = 'image/*,video/*'
+      f.onchange = () => {
+        const fl = f.files[0]; if (!fl) return
+        const cap = prompt('Pie de foto (opcional)') || ''
+        const fr = new FileReader()
+        fr.onload = () => postStatus({ mediaUrl: fr.result, type: fl.type.startsWith('video') ? 'video' : 'image', caption: cap })
+        fr.readAsDataURL(fl)
+      }
+      f.click()
+    }]
+  ]
+  rows.forEach(([l, fn]) => { const d = document.createElement('div'); d.textContent = l; d.style.cssText = 'padding:16px 22px;cursor:pointer'; d.onclick = () => { ov.remove(); fn() }; box.appendChild(d) })
+  ov.appendChild(box); document.body.appendChild(ov)
+}
+</script>
+<script>
+;(function () {
+  const idx = location.pathname.startsWith('/status') ? 1 : location.pathname.startsWith('/calls') ? 2 : 0
+  document.querySelectorAll('#bottomNav .nav-item').forEach((e, i) => e.classList.toggle('active', i === idx))
+})()
+</script>
+<script>
+;(function () {
+  function badge(i, n) {
+    const it = document.querySelectorAll('#bottomNav .nav-item')[i]
+    if (!it) return
+    const ic = it.firstElementChild
+    let b = ic.querySelector('.nbadge')
+    if (!n) { if (b) b.remove(); return }
+    if (!b) {
+      b = document.createElement('span')
+      b.className = 'nbadge'
+      b.style.cssText = 'position:absolute;top:-4px;right:2px;background:#00a884;color:#0b141a;border-radius:9px;font-size:11px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center'
+      ic.style.position = 'relative'
+      ic.appendChild(b)
+    }
+    b.textContent = n > 99 ? '99+' : n
+  }
+  async function tick() {
+    try {
+      const cs = JSON.parse(localStorage.getItem('chatState') || '{}')
+      badge(0, Object.values(cs).reduce((a, s) => a + (s.unread || 0), 0))
+    } catch (e) {}
+    try {
+      const onCalls = location.pathname.startsWith('/calls')
+      const seen = +localStorage.getItem('callsSeen') || 0
+      if (onCalls) localStorage.setItem('callsSeen', Date.now())
+      const calls = await (await fetch('/calls')).json()
+      badge(2, onCalls ? 0 : calls.filter(c => (c.status === 'timeout' || c.status === 'reject') && (c.date || 0) > seen).length)
+    } catch (e) {}
+  }
+  tick()
+  setInterval(tick, 5000)
+})()
+</script>
 </body>
 </html>

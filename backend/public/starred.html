@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mensajes destacados</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1014;color:#e9edef;font-family:system-ui,sans-serif;height:100dvh;overflow-y:auto}
+#top{display:flex;align-items:center;gap:18px;padding:14px 16px;font-size:22px;position:sticky;top:0;background:#0b1014}#top b{font-size:20px;font-weight:600}.back{cursor:pointer;padding:0 6px}
+.it{padding:14px 20px;border-bottom:1px solid #1c272e;cursor:pointer}.it:active{background:#18222a}
+.h{display:flex;justify-content:space-between;color:#8696a0;font-size:13px;margin-bottom:6px}.h b{color:#00a884;font-weight:600}
+.b{background:#202c33;border-radius:10px;padding:10px 12px;font-size:15px;word-break:break-word}.b.me{background:#005c4b}
+.e{padding:60px 30px;text-align:center;color:#8696a0}
+</style>
+</head>
+<body>
+<div id="top"><span class="back" onclick="history.back()">←</span><b>Mensajes destacados</b></div>
+<div id="app"></div>
+<script>
+async function load() {
+  const ids = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k.startsWith('star:')) { try { ids.push(...JSON.parse(localStorage.getItem(k))) } catch {} }
+  }
+  const app = document.getElementById('app')
+  if (!ids.length) { app.innerHTML = '<div class="e">Aún no tienes mensajes destacados.<br>Mantén presionado un mensaje y elige ⭐ Destacar.</div>'; return }
+  const list = await (await fetch('/api/starred', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) })).json()
+  if (!list.length) { app.innerHTML = '<div class="e">No se encontraron los mensajes destacados.</div>'; return }
+  list.forEach(({ chatId, name, msg }) => {
+    const d = document.createElement('div'); d.className = 'it'
+    d.onclick = () => { location.href = '/chat.html?id=' + encodeURIComponent(chatId) }
+    const h = document.createElement('div'); h.className = 'h'
+    const a = document.createElement('b'); a.textContent = (msg.fromMe ? 'Tú' : (msg.senderName || name)) + ' › ' + name
+    const t = document.createElement('span'); t.textContent = new Date(msg.timestamp).toLocaleDateString()
+    h.append(a, t)
+    const b = document.createElement('div'); b.className = 'b' + (msg.fromMe ? ' me' : '')
+    b.textContent = msg.content || (msg.mediaUrl ? '📎 Multimedia' : '')
+    d.append(h, b); app.appendChild(d)
+  })
+}
+load()
+</script>
+</body>
+</html>
