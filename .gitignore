@@ -37,3 +37,7 @@ run.sh
 # Dependencias de Node.js
 node_modules/
 **/node_modules/
+
+# Proteger sesiones de WhatsApp en cualquier carpeta
+**/sesion/
+**/secrets.jsonl
