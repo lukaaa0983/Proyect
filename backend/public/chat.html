@@ -235,6 +235,14 @@
 .msg-wrap.noav .msg-avatar{visibility:hidden}
 body.dm .msg-meta,body.dm .msg-avatar{display:none !important}
 </style>
+<style id="wa-input">
+html #pill{background:#202c33;align-items:center}
+html #pill .pbtn{display:flex;align-items:center;justify-content:center;width:38px !important;height:48px !important;padding:0 !important;font-size:0 !important;color:#8d9aa0 !important;background:transparent !important;border-radius:0 !important;flex-shrink:0}
+html #pill .pbtn svg{display:block}
+html #pill #msgInput{align-self:stretch}
+html #sendBtn{background:#21c063 !important;color:#0b141a !important;display:flex;align-items:center;justify-content:center;width:50px !important;height:50px !important;padding:0 !important;font-size:0 !important;border-radius:50% !important}
+html #sendBtn svg{display:block}
+</style>
 </head>
 <body>
 
@@ -274,14 +282,14 @@ body.dm .msg-meta,body.dm .msg-avatar{display:none !important}
   <!-- INPUT -->
   <div id="inputArea">
     <div id="pill">
-      <div class="pbtn" onclick="toggleEmoji()">😊</div>
+      <div class="pbtn" onclick="toggleEmoji()"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-6.4-2.6"/><path d="M12 21c-.4-3.4-2.4-4.6-6.4-2.6"/><circle cx="9" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="10" r=".9" fill="currentColor"/><path d="M8.6 13.6c1.9 2 4.9 2 6.8 0"/></svg></div>
       <textarea id="msgInput" placeholder="Mensaje" rows="1" autocomplete="off"></textarea>
-      <div class="pbtn" id="imgBtn" onclick="document.getElementById('imgInput').click()">📎</div>
-      <div class="pbtn" id="camBtn" onclick="document.getElementById('camInput').click()">📷</div>
+      <div class="pbtn" id="imgBtn" onclick="document.getElementById('imgInput').click()"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><g transform="rotate(22 12 12)"><path d="M16.2 7v9.5a4.2 4.2 0 0 1-8.4 0V6a2.7 2.7 0 0 1 5.4 0v10a1.2 1.2 0 0 1-2.4 0V7.5"/></g></svg></div>
+      <div class="pbtn" id="camBtn" onclick="document.getElementById('camInput').click()"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2 2 0 0 1 6 6.5h2L9.4 4.5h5.2L16 6.5h2a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.6" r="3.3"/></svg></div>
     </div>
     <input type="file" id="imgInput" accept="*/*" style="display:none">
     <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none">
-    <button id="sendBtn" onclick="sendOrRecord()">🎤</button>
+    <button id="sendBtn" data-ic="mic" onclick="sendOrRecord()"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" stroke="none"/><path d="M5.8 11.5a6.2 6.2 0 0 0 12.4 0M12 18v3M9.5 21h5"/></svg></button>
   </div>
 
   <!-- LIGHTBOX -->

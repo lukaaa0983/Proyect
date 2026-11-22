@@ -142,8 +142,10 @@ const UI = {
     if (msg.type === 'video' && msg.mediaUrl) {
       const vid = document.createElement('video')
       vid.className = 'msg-video'
-      vid.src = msg.mediaUrl
+      vid.src = msg.mediaUrl.startsWith('/media/') ? msg.mediaUrl + '#t=0.001' : msg.mediaUrl
       vid.controls = true
+      vid.preload = 'metadata'
+      vid.playsInline = true
       wrap.appendChild(vid)
       return wrap
     }

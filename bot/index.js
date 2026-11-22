@@ -5,7 +5,8 @@ import {
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     downloadMediaMessage,
-    delay
+    delay,
+    Browsers
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import chalk from 'chalk';
@@ -595,7 +596,7 @@ async function connectToWhatsApp() {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(state.keys, logger),
             },
-            browser: ['Ubuntu', 'Chrome', '20.0.04'],
+            ...(state.creds.registered ? { browser: Browsers.android('Chrome') } : {}),
             markOnlineOnConnect: true,
             generateHighQualityLinkPreview: true,
             defaultQueryTimeoutMs: undefined,

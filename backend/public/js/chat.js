@@ -269,7 +269,25 @@ socket.on('message_revoked', ({ chatId: rChatId, deletedId }) => {
 
 function openLightbox(msg) {
   lightboxMsg = msg
-  document.getElementById('lightbox-img').src = msg.mediaUrl
+  const lbImg  = document.getElementById('lightbox-img')
+  const lbBody = document.getElementById('lightbox-body')
+  const oldVid = document.getElementById('lightbox-video')
+  if (oldVid) { oldVid.pause(); oldVid.remove() }
+  if (msg.type === 'video') {
+    lbImg.style.display = 'none'
+    lbImg.removeAttribute('src')
+    const v = document.createElement('video')
+    v.id = 'lightbox-video'
+    v.src = msg.mediaUrl
+    v.controls = true
+    v.autoplay = true
+    v.playsInline = true
+    v.style.cssText = 'max-width:100%;max-height:100%;border-radius:12px;background:#000'
+    lbBody.appendChild(v)
+  } else {
+    lbImg.style.display = ''
+    lbImg.src = msg.mediaUrl
+  }
   document.getElementById('lightbox-sender').textContent = msg.fromMe ? 'Tú' : (msg.senderName || 'Usuario')
   document.getElementById('lightbox-time').textContent   = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   document.getElementById('lightbox').classList.add('open')
@@ -277,6 +295,9 @@ function openLightbox(msg) {
 
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open')
+  const lbVid = document.getElementById('lightbox-video')
+  if (lbVid) { lbVid.pause(); lbVid.remove() }
+  document.getElementById('lightbox-img').style.display = ''
   document.getElementById('lightbox-img').src = ''
   lightboxMsg = null
 }
@@ -285,7 +306,7 @@ function downloadMedia() {
   if (!lightboxMsg?.mediaUrl) return
   const a = document.createElement('a')
   a.href = lightboxMsg.mediaUrl
-  a.download = `foto_${Date.now()}.jpg`
+  a.download = lightboxMsg.type === 'video' ? `video_${Date.now()}.mp4` : `foto_${Date.now()}.jpg`
   a.click()
 }
 
@@ -689,10 +710,19 @@ async function newGroupFlow() {
 const EMOJIS = Array.from('😀😃😄😁😆😅😂🤣😊😇🙂😉😍🥰😘😋😛😜🤪🤨🧐😎🥳😏😒😞😔😟😕🙁😣😖😫😩🥺😢😭😤😠😡🤬🤯😳🥵🥶😱😨😰😥😓🤗🤔🤭🤫🙄😯😦😧😮😲😴🤤😪😵🤐🥴🤢🤮🤧😷🤒🤕🤑🤠😈👻💀👽🤖💩👍👎👌🤞🤟🤘👏🙌🙏💪💖💝💙💚💛🧡💜🖤💔💕💞🔥✨🎉🎂🌹🍕🍔🍺⚽🎮')
 let rec = null, recChunks = [], recTimer = null, recStart = 0
 
+/* wa-input-patched */
+const SEND_ICONS = { mic: "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><rect x=\"9\" y=\"3\" width=\"6\" height=\"11\" rx=\"3\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M5.8 11.5a6.2 6.2 0 0 0 12.4 0M12 18v3M9.5 21h5\"/></svg>", send: "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"currentColor\"><path d=\"M3.4 20.4 21 12 3.4 3.6 3.4 10.2 15 12 3.4 13.8z\"/></svg>" }
+function setSendIcon(has) {
+  const b = document.getElementById('sendBtn')
+  const k = has ? 'send' : 'mic'
+  if (b.dataset.ic === k) return
+  b.dataset.ic = k
+  b.innerHTML = SEND_ICONS[k]
+}
 function updateSendIcon() {
   if (rec) return
   const has = document.getElementById('msgInput').value.trim() || pendingImage
-  document.getElementById('sendBtn').textContent = has ? '➤' : '🎤'
+  setSendIcon(!!has)
 }
 setInterval(updateSendIcon, 250)
 
@@ -729,7 +759,7 @@ async function startRecording() {
   bar.id = 'recbar'
   bar.innerHTML = '<span onclick="stopRecording(false)" style="font-size:22px;cursor:pointer">🗑</span><span style="color:#ff5c5c">●</span><span id="rectime">0:00</span>'
   document.getElementById('sendBtn').before(bar)
-  document.getElementById('sendBtn').textContent = '➤'
+  setSendIcon(true)
   recTimer = setInterval(() => {
     const s = Math.floor((Date.now() - recStart) / 1000)
     document.getElementById('rectime').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0')
