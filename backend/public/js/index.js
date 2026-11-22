@@ -330,7 +330,7 @@ setInterval(checkBotStatus, 15000)
 // Link a estados
 const statusLink = document.createElement('div')
 statusLink.style.cssText = 'padding:14px 16px;display:flex;gap:12px;align-items:center;cursor:pointer;border-bottom:1px solid var(--border);background:var(--surface)'
-statusLink.innerHTML = '<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#9c27b0,#673ab7);display:flex;align-items:center;justify-content:center;font-size:24px">📢</div><div><div style="font-weight:600">Estados</div><div style="font-size:12px;color:var(--text-dim)">Mira los últimos</div></div>'
+statusLink.innerHTML = '<div style="width:52px;height:52px;border-radius:50%;background:#1f2c34;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#00a884" stroke-width="1.8"><circle cx="9" cy="12" r="6.5"/><circle cx="16" cy="8" r="4"/></svg></div><div><div style="font-weight:600">Novedades</div><div style="font-size:12px;color:var(--text-dim)">Mira las últimas</div></div>'
 statusLink.onclick = () => location.href = '/statuses.html'
 
 document.getElementById('chatList').insertBefore(statusLink, document.getElementById('chatList').firstChild)

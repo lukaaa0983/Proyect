@@ -41,3 +41,4 @@ node_modules/
 # Proteger sesiones de WhatsApp en cualquier carpeta
 **/sesion/
 **/secrets.jsonl
+node_modules/

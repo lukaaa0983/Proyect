@@ -197,7 +197,19 @@ app.post("/message", (req, res) => {
   }
 
   if (waMessageKey?.id) {
-    if (db.hasMessage(from, waMessageKey.id)) return res.json({ success: true, duplicate: true })
+    if (db.hasMessage(from, waMessageKey.id)) {
+      // Ya existe un mensaje con este ID (ej. el placeholder de "ver una vez").
+      // Si ahora llega la media real, completamos el mensaje en vez de descartarlo.
+      if (message.mediaUrl) {
+        const updated = db.updateMessage(from, waMessageKey.id, x => {
+          if (!x.mediaUrl) x.mediaUrl = message.mediaUrl
+          if (!x.content && msgContent) x.content = msgContent
+          if (isViewOnce) x.isViewOnce = true
+        })
+        if (updated) io.to(from).emit("message_updated", { chatId: from, msg: updated })
+      }
+      return res.json({ success: true, duplicate: true })
+    }
     if (pendRev.delete(from + "|" + waMessageKey.id)) { message.revoked = true; message.originalContent = message.content }
   }
   const name = db.saveMessage(from, pushName, message)

@@ -1,18 +1,27 @@
 :root {
-  --gold: #c9a84c;
-  --gold-light: #e2c97e;
-  --gold-dim: #7a6230;
-  --bg: #0a0a0a;
-  --surface: #111111;
-  --surface2: #1a1a1a;
-  --surface3: #222222;
-  --border: #2a2a2a;
-  --text: #f0f0f0;
-  --text-dim: #888888;
-  --sent: #1a2a1a;
-  --sent-border: #2a4a2a;
+  /* Acento principal (verde-azulado real de WhatsApp) */
+  --gold: #00a884;
+  --gold-light: #06cf9c;
+  --gold-dim: #025144;
+
+  /* Fondos (de más oscuro a más claro, igual que WhatsApp dark) */
+  --bg: #0b141a;
+  --surface: #202c33;
+  --surface2: #2a3942;
+  --surface3: #364147;
+  --border: #2a3942;
+
+  /* Texto */
+  --text: #e9edef;
+  --text-dim: #8696a0;
+
+  /* Burbujas */
+  --sent: #005c4b;
+  --sent-border: transparent;
+
+  /* Verde "en línea" / marca, y rojo destructivo */
   --green: #25d366;
-  --red: #ff4444;
+  --red: #f15c6d;
 }
 
 * {

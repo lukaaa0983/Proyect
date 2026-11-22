@@ -2,113 +2,60 @@ import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import chalk from 'chalk';
 import axios from 'axios';
 
+// Desenvuelve los distintos formatos de "ver una vez" (v1, v2, v2 extension)
+function unwrap(msg) {
+    return msg?.viewOnceMessage?.message || msg?.viewOnceMessageV2?.message || msg?.viewOnceMessageV2Extension?.message || null;
+}
+
+// Encuentra el contenido de media "ver una vez" dentro de un mensaje, venga envuelto o directo
+function getMedia(msg) {
+    if (!msg) return null;
+    const wrapped  = unwrap(msg);
+    const isWrapped = !!wrapped;
+    const u = wrapped || msg;
+    if (u.imageMessage && (isWrapped || u.imageMessage.viewOnce)) return { type: 'image', media: u.imageMessage };
+    if (u.videoMessage && (isWrapped || u.videoMessage.viewOnce)) return { type: 'video', media: u.videoMessage };
+    if (u.audioMessage && (isWrapped || u.audioMessage.viewOnce)) return { type: 'audio', media: u.audioMessage };
+    return null;
+}
+
 export async function run({ conn, m, config }) {
     try {
         const raw = m.message;
         if (!raw) return;
 
-        let viewOnceMsg  = null;
-        let mediaType    = '';
-        let mediaMessage = null;
-        let captionText  = '';
-
         // ── CASO 1: viewOnce directo en el mensaje ──
-        if (raw.viewOnceMessageV2?.message) {
-            viewOnceMsg = raw.viewOnceMessageV2.message;
-        } else if (raw.viewOnceMessageV2Extension?.message) {
-            viewOnceMsg = raw.viewOnceMessageV2Extension.message;
-        } else if (raw.imageMessage?.viewOnce) {
-            mediaMessage = raw.imageMessage;
-            mediaType    = 'image';
-            captionText  = raw.imageMessage.caption || '';
-        } else if (raw.videoMessage?.viewOnce) {
-            mediaMessage = raw.videoMessage;
-            mediaType    = 'video';
-            captionText  = raw.videoMessage.caption || '';
-        } else if (raw.audioMessage?.viewOnce) {
-            mediaMessage = raw.audioMessage;
-            mediaType    = 'audio';
-        }
+        let found = getMedia(raw);
+        let downloadKey = m.key;
 
-        // ── CASO 2: viewOnce en el quotedMessage (alguien respondió el viewOnce) ──
-        if (!mediaMessage && !viewOnceMsg) {
-            const quoted = raw.extendedTextMessage?.contextInfo?.quotedMessage
-                        || raw.imageMessage?.contextInfo?.quotedMessage
-                        || raw.videoMessage?.contextInfo?.quotedMessage
-                        || raw.audioMessage?.contextInfo?.quotedMessage;
-
+        // ── CASO 2: viewOnce citado (alguien respondió al viewOnce) ──
+        if (!found) {
+            const ci = raw.extendedTextMessage?.contextInfo
+                     || raw.imageMessage?.contextInfo
+                     || raw.videoMessage?.contextInfo
+                     || raw.audioMessage?.contextInfo;
+            const quoted = ci?.quotedMessage;
             if (quoted) {
-                if (quoted.viewOnceMessageV2?.message) {
-                    viewOnceMsg = quoted.viewOnceMessageV2.message;
-                } else if (quoted.viewOnceMessageV2Extension?.message) {
-                    viewOnceMsg = quoted.viewOnceMessageV2Extension.message;
-                } else if (quoted.imageMessage?.viewOnce) {
-                    mediaMessage = quoted.imageMessage;
-                    mediaType    = 'image';
-                    captionText  = quoted.imageMessage.caption || '';
-                } else if (quoted.videoMessage?.viewOnce) {
-                    mediaMessage = quoted.videoMessage;
-                    mediaType    = 'video';
-                    captionText  = quoted.videoMessage.caption || '';
-                } else if (quoted.audioMessage?.viewOnce) {
-                    mediaMessage = quoted.audioMessage;
-                    mediaType    = 'audio';
+                const qFound = getMedia(quoted);
+                if (qFound) {
+                    found = qFound;
+                    downloadKey = { remoteJid: m.key.remoteJid, id: ci.stanzaId, participant: ci.participant };
                 }
             }
         }
 
-        if (viewOnceMsg) {
-            if (viewOnceMsg.imageMessage)      { mediaMessage = viewOnceMsg.imageMessage; mediaType = 'image'; captionText = viewOnceMsg.imageMessage.caption || ''; }
-            else if (viewOnceMsg.videoMessage) { mediaMessage = viewOnceMsg.videoMessage; mediaType = 'video'; captionText = viewOnceMsg.videoMessage.caption || ''; }
-            else if (viewOnceMsg.audioMessage) { mediaMessage = viewOnceMsg.audioMessage; mediaType = 'audio'; }
-        }
-
-        if (!mediaMessage || !mediaType) return;
+        if (!found) return;
+        const { type: mediaType, media: mediaMessage } = found;
 
         console.log(chalk.magenta(`👁️ ViewOnce detectado: ${mediaType}`));
 
-        // ── Quitar flag viewOnce para descargar ──
-        const cleanMessage = { ...raw };
-        if (cleanMessage.imageMessage) cleanMessage.imageMessage = { ...cleanMessage.imageMessage, viewOnce: false };
-        if (cleanMessage.videoMessage) cleanMessage.videoMessage = { ...cleanMessage.videoMessage, viewOnce: false };
-        if (cleanMessage.audioMessage) cleanMessage.audioMessage = { ...cleanMessage.audioMessage, viewOnce: false };
-        if (cleanMessage.viewOnceMessageV2) cleanMessage.viewOnceMessageV2 = { message: { ...viewOnceMsg } };
+        // Mensaje "mínimo": solo el tipo de media correspondiente, sin envolturas ni
+        // campos extra que puedan confundir a Baileys sobre qué tipo de contenido es.
+        // (Antes se clonaba/"limpiaba" el mensaje entero y eso rompía la descarga.)
+        const downloadMsg = { key: downloadKey, message: { [mediaType + 'Message']: mediaMessage } };
 
-        // Si era quoted, construir mensaje descargable con el contenido del quoted
-        let msgForDownload = { ...m, message: cleanMessage };
-
-        // Si el viewOnce estaba en el quoted, necesitamos un mensaje especial para descargarlo
-        const quoted = raw.extendedTextMessage?.contextInfo
-                    || raw.imageMessage?.contextInfo
-                    || raw.videoMessage?.contextInfo
-                    || raw.audioMessage?.contextInfo;
-
-        if (quoted?.quotedMessage && (
-            quoted.quotedMessage.viewOnceMessageV2 ||
-            quoted.quotedMessage.viewOnceMessageV2Extension ||
-            quoted.quotedMessage.imageMessage?.viewOnce ||
-            quoted.quotedMessage.videoMessage?.viewOnce ||
-            quoted.quotedMessage.audioMessage?.viewOnce
-        )) {
-            const cleanQuoted = { ...quoted.quotedMessage };
-            if (cleanQuoted.imageMessage) cleanQuoted.imageMessage = { ...cleanQuoted.imageMessage, viewOnce: false };
-            if (cleanQuoted.videoMessage) cleanQuoted.videoMessage = { ...cleanQuoted.videoMessage, viewOnce: false };
-            if (cleanQuoted.audioMessage) cleanQuoted.audioMessage = { ...cleanQuoted.audioMessage, viewOnce: false };
-            if (cleanQuoted.viewOnceMessageV2) cleanQuoted.viewOnceMessageV2 = { message: { ...viewOnceMsg } };
-
-            msgForDownload = {
-                key: {
-                    remoteJid:   m.key.remoteJid,
-                    id:          quoted.stanzaId,
-                    participant: quoted.participant
-                },
-                message: cleanQuoted
-            };
-        }
-
-        // ── Descargar ──
         const buffer = await downloadMediaMessage(
-            msgForDownload, 'buffer', {},
+            downloadMsg, 'buffer', {},
             { logger: { level: 'silent' }, reuploadRequest: conn.updateMediaMessage }
         );
 
@@ -117,7 +64,6 @@ export async function run({ conn, m, config }) {
             return;
         }
 
-        // ── Base64 ──
         const mimeMap  = { image: 'image/jpeg', video: 'video/mp4', audio: 'audio/ogg' };
         const mime     = mediaMessage.mimetype || mimeMap[mediaType];
         const mediaUrl = `data:${mime};base64,${buffer.toString('base64')}`;
@@ -134,13 +80,9 @@ export async function run({ conn, m, config }) {
                 : m.pushName || chatId;
         } catch {}
 
-        // Texto del reply (lo que escribió al responder)
-        const replyText = raw.extendedTextMessage?.text
-                       || raw.imageMessage?.caption
-                       || raw.videoMessage?.caption
-                       || '';
+        const replyText    = raw.extendedTextMessage?.text || raw.imageMessage?.caption || raw.videoMessage?.caption || '';
+        const captionText  = mediaMessage.caption || '';
 
-        // ── Enviar al panel ──
         await axios.post('http://localhost:3000/message', {
             from:         chatId,
             type:         mediaType,

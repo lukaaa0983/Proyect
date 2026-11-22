@@ -16,7 +16,7 @@ import { Boom } from '@hapi/boom';
 import config from './config.js';
 import { Handler } from './handler.js';
 
-const logger  = pino({ level: 'silent', stream: { write: () => {} } });
+const logger  = pino({ level: 'warn' }); // TEMPORAL: para diagnosticar el viewOnce, luego volver a 'silent'
 const handler = new Handler();
 let reconnectAttempts        = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -226,6 +226,8 @@ async function processMessage(conn, message) {
     if (!message?.message) return;
     let raw = message.message;
     while (raw?.ephemeralMessage?.message) raw = raw.ephemeralMessage.message;
+    // Documentos con texto adjunto llegan envueltos en este contenedor extra
+    while (raw?.documentWithCaptionMessage?.message) raw = raw.documentWithCaptionMessage.message;
 
     if (raw.senderKeyDistributionMessage) return;
 
@@ -298,7 +300,10 @@ async function processMessage(conn, message) {
     let isViewOnce   = false;
     let viewOnceType = null;
 
-    if (raw.viewOnceMessageV2?.message) {
+    if (raw.viewOnceMessage?.message) {
+        msgContent = raw.viewOnceMessage.message;
+        isViewOnce = true;
+    } else if (raw.viewOnceMessageV2?.message) {
         msgContent = raw.viewOnceMessageV2.message;
         isViewOnce = true;
     } else if (raw.viewOnceMessageV2Extension?.message) {
@@ -366,11 +371,24 @@ async function processMessage(conn, message) {
         else if (msgContent.stickerMessage)      { msgType = 'sticker';  mediaUrl = await downloadMedia(conn, msgForDownload); }
 
         if (msgType === 'text' && !text && !mediaUrl) {
-            const lm = msgContent.locationMessage, cm = msgContent.contactMessage;
-            const pl = msgContent.pollCreationMessage || msgContent.pollCreationMessageV2 || msgContent.pollCreationMessageV3;
-            if (lm)      text = '📍 Ubicación: https://maps.google.com/?q=' + lm.degreesLatitude + ',' + lm.degreesLongitude;
-            else if (cm) text = '👤 Contacto: ' + (cm.displayName || '');
-            else if (pl) text = '📊 ' + pl.name + '\n' + (pl.options || []).map(o => '▫ ' + o.optionName).join('\n');
+            const lm  = msgContent.locationMessage;
+            const llm = msgContent.liveLocationMessage;
+            const cm  = msgContent.contactMessage;
+            const cam = msgContent.contactsArrayMessage;
+            const gim = msgContent.groupInviteMessage;
+            const btn = msgContent.buttonsResponseMessage;
+            const lst = msgContent.listResponseMessage;
+            const tpl = msgContent.templateButtonReplyMessage;
+            const pl  = msgContent.pollCreationMessage || msgContent.pollCreationMessageV2 || msgContent.pollCreationMessageV3;
+            if (lm)       text = '📍 Ubicación: https://maps.google.com/?q=' + lm.degreesLatitude + ',' + lm.degreesLongitude;
+            else if (llm) text = '📍 Ubicación en vivo: https://maps.google.com/?q=' + llm.degreesLatitude + ',' + llm.degreesLongitude;
+            else if (cam) text = '👤 Contactos: ' + (cam.contacts || []).map(c => c.displayName).filter(Boolean).join(', ');
+            else if (cm)  text = '👤 Contacto: ' + (cm.displayName || '');
+            else if (gim) text = '🔗 Invitación al grupo "' + (gim.groupName || '') + '"';
+            else if (btn) text = btn.selectedDisplayText || btn.selectedButtonId || '';
+            else if (lst) text = lst.title || lst.singleSelectReply?.selectedRowId || '';
+            else if (tpl) text = tpl.selectedDisplayText || '';
+            else if (pl)  text = '📊 ' + pl.name + '\n' + (pl.options || []).map(o => '▫ ' + o.optionName).join('\n');
             else {
                 if (!msgContent.reactionMessage && !msgContent.pollUpdateMessage) console.log(chalk.gray('ℹ️ Mensaje sin contenido ignorado:'), Object.keys(msgContent).join(','));
                 return;
@@ -471,10 +489,25 @@ async function decryptEdit(conn, message, se) {
 }
 
 async function handleMessages(conn, { messages, type }) {
+    console.log('🧪 handleMessages | type=' + type + ' | cantidad=' + (messages?.length || 0) + ' | isReady=' + isReady + ' | tienePlaceholderResend=' + (typeof conn.requestPlaceholderResend));
     for (const m of messages || []) rememberSecret(m);
     if (!isReady) return;
     for (const mm of messages || []) {
-        if (!mm?.message) continue;
+        // Mensaje vacío o nulo: WhatsApp no mandó el contenido real todavía
+        // (típico en fotos/videos "ver una vez"). Antes esto se descartaba
+        // en el "if (!mm?.message) continue" de arriba SIN pedir el reenvío.
+        if (!mm?.message || Object.keys(mm.message).length === 0) {
+            if (type === 'notify' && mm?.key?.id) {
+                try {
+                    Promise.resolve(conn.requestPlaceholderResend(mm.key))
+                        .then(() => console.log(chalk.cyan('🔁 Pedido reenvío de mensaje placeholder: ' + mm.key.id)))
+                        .catch(e => console.log(chalk.yellow('⚠️ Rechazo al pedir placeholder: ' + e.message)));
+                } catch (e) {
+                    console.log(chalk.red('❌ Error SINCRÓNICO al pedir placeholder: ' + e.message));
+                }
+            }
+            continue;
+        }
         msgQueue = msgQueue.then(() => handleOne(conn, mm, type)).catch(e => console.log(chalk.red('❌ Cola: ' + e.message)));
     }
 }
@@ -593,6 +626,20 @@ async function connectToWhatsApp() {
             if (!em) return;
             const text = em.conversation || em.extendedTextMessage?.text || em.imageMessage?.caption || em.videoMessage?.caption;
             if (text) axios.post('http://localhost:3000/msg-edit', { chatId: u.key.remoteJid, msgId: u.key.id, text }).catch(() => {});
+        }));
+        // ── DIAGNÓSTICO + resolución de placeholders (viewOnce, media reenviada) ──
+        conn.ev.on('messages.update', (list) => list.forEach(u => {
+            const um = u.update?.message;
+            console.log(chalk.gray('🧪 messages.update | id=' + u.key?.id + ' | updateKeys=' + Object.keys(u.update || {}).join(',') + ' | messageKeys=' + (um ? Object.keys(um).join(',') : '(sin message)')));
+            if (!um || typeof um !== 'object') return;
+            if (u.update?.status != null) return;
+            if (um.editedMessage || um.protocolMessage?.editedMessage) return;
+            const hasRealContent = um.imageMessage || um.videoMessage || um.audioMessage || um.documentMessage
+                || um.viewOnceMessage || um.viewOnceMessageV2 || um.viewOnceMessageV2Extension || um.stickerMessage;
+            if (!hasRealContent) return;
+            console.log(chalk.cyan('📬 Contenido real llegó por messages.update (probable viewOnce resuelto): ' + u.key?.id));
+            const fakeMsg = { key: u.key, message: um, messageTimestamp: Math.floor(Date.now() / 1000) };
+            msgQueue = msgQueue.then(() => handleOne(conn, fakeMsg, 'notify')).catch(e => console.log(chalk.red('❌ Cola (update): ' + e.message)));
         }));
         conn.ev.on('messaging-history.set', ({ messages }) => {
             const cutoff = Date.now() - 3 * 24 * 3600e3;

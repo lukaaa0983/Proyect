@@ -484,11 +484,13 @@ input.addEventListener('keydown', (e) => {
     let w = document.querySelector('[data-msg-id="' + msg.waMessageKey.id + '"]')
     if (!w) { w = document.querySelector('[data-ts="' + msg.timestamp + '"]'); if (w) w.dataset.msgId = msg.waMessageKey.id }
     const b = w && w.querySelector('.bubble')
+    const hadMedia = !!(b && b._m && b._m.mediaUrl)
     if (b) { if (b._m) Object.assign(b._m, msg); renderReactions(b, msg); setTicks(b, msg) }
-    if (b && msg.edited) {
+    const mediaJustArrived = !hadMedia && !!msg.mediaUrl
+    if (b && (msg.edited || mediaJustArrived)) {
       const old = b.querySelector('.msg-body')
       if (old) { const nb = UI.buildMediaElement(msg, openLightbox); nb.classList.add('msg-body'); linkify(nb); old.replaceWith(nb) }
-      renderEdited(b, msg)
+      if (msg.edited) renderEdited(b, msg)
     }
   })
   socket.on('message_removed', ({ chatId: c, deletedId }) => {
