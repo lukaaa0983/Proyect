@@ -427,8 +427,17 @@ app.get("/api/blocklist", async (req, res) => {
   try {
     const conn = botModule?.getConn?.()
     const jids = await conn.fetchBlocklist()
-    res.json({ ok: true, count: jids.length, jids })
-  } catch (e) { res.json({ ok: false, count: 0, jids: [], error: e?.message || "Error" }) }
+    // Las cuentas bloqueadas vienen como @lid (identificador interno nuevo de WhatsApp),
+    // no como número de teléfono: hay que resolverlas a su número real.
+    const numbers = await Promise.all(jids.map(async j => {
+      if (String(j).endsWith("@lid")) {
+        const pn = await conn?.signalRepository?.lidMapping?.getPNForLID?.(j).catch(() => "")
+        return pn ? pn.split("@")[0].split(":")[0] : null
+      }
+      return j.split("@")[0].split(":")[0]
+    }))
+    res.json({ ok: true, count: jids.length, jids, numbers })
+  } catch (e) { res.json({ ok: false, count: 0, jids: [], numbers: [], error: e?.message || "Error" }) }
 })
 
 app.post("/api/status", async (req, res) => {

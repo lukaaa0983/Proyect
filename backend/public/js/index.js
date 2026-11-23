@@ -610,7 +610,7 @@ newChat = function () {
     const m = document.createElement('div')
     m.style.cssText = 'position:absolute;top:56px;right:10px;background:#1f2c34;border-radius:14px;min-width:230px;padding:6px 0;box-shadow:0 6px 24px rgba(0,0,0,.55)'
     const ncMenuActions = {
-      'Contactos': () => location.href = '/contacts-settings.html'
+      'Ajustes de contactos': () => location.href = '/contacts-settings.html'
     }
     ;['Ajustes de contactos', 'Invitar amigos', 'Contactos', 'Actualizar', 'Ayuda'].forEach(l => {
       const d = document.createElement('div')

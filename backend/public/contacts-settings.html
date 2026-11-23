@@ -39,16 +39,23 @@ async function loadBlocked() {
     return r
   } catch { $('blkCount').textContent = '—'; return { jids: [] } }
 }
+function fmtNum(n) {
+  if (!n) return 'Número desconocido'
+  if (n.startsWith('598') && n.length === 11) return '+598 ' + n.slice(3).replace(/^(\d{2})(\d{3})(\d{3})$/, '$1 $2 $3')
+  return '+' + n
+}
 function openBlocked() {
   loadBlocked().then(r => {
     $('sbox').innerHTML = ''
-    if (!r.jids || !r.jids.length) {
+    const nums = r.numbers || []
+    if (!nums.length) {
       const d = document.createElement('div'); d.className = 'srow'; d.style.color = '#8696a0'; d.textContent = 'No tenés cuentas bloqueadas.'
       $('sbox').appendChild(d)
     } else {
-      r.jids.forEach(j => {
+      nums.forEach(n => {
         const d = document.createElement('div'); d.className = 'srow'
-        d.textContent = j.split('@')[0]
+        d.textContent = fmtNum(n)
+        if (!n) d.style.color = '#8696a0'
         $('sbox').appendChild(d)
       })
     }
