@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contactos</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0b1014;color:#e9edef;font-family:system-ui,sans-serif;height:100dvh;overflow-y:auto}
+#top{display:flex;align-items:center;gap:18px;padding:14px 16px;font-size:22px;position:sticky;top:0;background:#0b1014}
+#top b{font-size:20px;font-weight:600}.back{cursor:pointer;padding:0 6px}
+.row{display:flex;align-items:center;gap:16px;padding:16px 20px;cursor:pointer}.row:active{background:#18222a}
+.rt{flex:1;font-size:17px}.rs{color:#8696a0;font-size:14px;margin-top:3px;line-height:1.4}
+.sw{width:50px;height:28px;border-radius:14px;border:2px solid #8696a0;position:relative;flex-shrink:0}.sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#8696a0;transition:.2s}.sw.on{border-color:#00a884;background:#00a88433}.sw.on:after{left:25px;background:#00a884}
+.div{height:8px;background:#0e161b}
+a.info{color:#53bdeb;font-weight:600;text-decoration:none}
+#sheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:flex-end}#sheet.open{display:flex}
+#sbox{background:#1f2c34;width:100%;max-height:70vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom))}
+#sbox .srow{padding:13px 22px;font-size:16px}
+</style>
+</head>
+<body>
+<div id="top"><span class="back" onclick="history.length>1?history.back():location.href='/'">←</span><b>Contactos</b></div>
+<div class="row" onclick="openBlocked()">
+  <div class="rt">Cuentas bloqueadas<div class="rs" id="blkCount">...</div></div>
+</div>
+<div class="div"></div>
+<div class="row" onclick="toggleSync()">
+  <div class="rt">Contactos de WhatsApp<div class="rs">Los contactos se guardan en tu cuenta de WhatsApp para administrarlos en todos los dispositivos. <a class="info" onclick="event.stopPropagation()">Más información</a></div></div>
+  <div class="sw" id="syncSw"></div>
+</div>
+<div id="sheet" onclick="if(event.target===this)this.classList.remove('open')"><div id="sbox"></div></div>
+<script>
+const $ = s => document.getElementById(s)
+async function loadBlocked() {
+  try {
+    const r = await (await fetch('/api/blocklist')).json()
+    $('blkCount').textContent = r.ok ? String(r.count) : '—'
+    return r
+  } catch { $('blkCount').textContent = '—'; return { jids: [] } }
+}
+function openBlocked() {
+  loadBlocked().then(r => {
+    $('sbox').innerHTML = ''
+    if (!r.jids || !r.jids.length) {
+      const d = document.createElement('div'); d.className = 'srow'; d.style.color = '#8696a0'; d.textContent = 'No tenés cuentas bloqueadas.'
+      $('sbox').appendChild(d)
+    } else {
+      r.jids.forEach(j => {
+        const d = document.createElement('div'); d.className = 'srow'
+        d.textContent = j.split('@')[0]
+        $('sbox').appendChild(d)
+      })
+    }
+    $('sheet').classList.add('open')
+  })
+}
+function toggleSync() {
+  const on = $('syncSw').classList.toggle('on')
+  localStorage.setItem('contactsSync', on ? '1' : '0')
+}
+if (localStorage.getItem('contactsSync') === '1') $('syncSw').classList.add('on')
+loadBlocked()
+</script>
+</body>
+</html>

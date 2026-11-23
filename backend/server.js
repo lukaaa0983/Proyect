@@ -423,6 +423,14 @@ app.post("/api/block", async (req, res) => {
   } catch (e) { res.json({ ok: false, error: e?.message || "Error" }) }
 })
 
+app.get("/api/blocklist", async (req, res) => {
+  try {
+    const conn = botModule?.getConn?.()
+    const jids = await conn.fetchBlocklist()
+    res.json({ ok: true, count: jids.length, jids })
+  } catch (e) { res.json({ ok: false, count: 0, jids: [], error: e?.message || "Error" }) }
+})
+
 app.post("/api/status", async (req, res) => {
   try {
     const conn = botModule?.getConn?.()
