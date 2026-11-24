@@ -339,21 +339,48 @@ document.addEventListener('keydown', e => e.key === 'Escape' && closeCtxMenu())
 window.addEventListener('pageshow', e => { if (e.persisted) { closeCtxMenu(); loadChats() } })
 
 function plusMenu() {
-  const ov = document.createElement('div')
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:flex;align-items:flex-end'
-  ov.onclick = e => { if (e.target === ov) ov.remove() }
-  const box = document.createElement('div')
-  box.style.cssText = 'background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))'
-  ;[['💬 Nuevo chat', newChat], ['👥 Nuevo grupo', newGroup], ['⭐ Mensajes destacados', () => { location.href = '/starred.html' }], ['👤 Perfil', () => { location.href = '/profile.html' }], ['✅ Marcar todos como leídos', markAllRead], ['⚙️ Ajustes', () => { location.href = '/settings.html' }]].forEach(([l, fn]) => {
-    const d = document.createElement('div')
-    d.textContent = l
-    d.style.cssText = 'padding:16px 22px;cursor:pointer'
-    d.onclick = () => { ov.remove(); fn() }
-    box.appendChild(d)
-  })
-  ov.appendChild(box)
-  document.body.appendChild(ov)
+  const old = document.getElementById('waMainMenu');
+  if (old) { old.remove(); return; }
+
+  const ov = document.createElement('div');
+  ov.id = 'waMainMenu';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:900;background:transparent';
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+
+  const box = document.createElement('div');
+  box.style.cssText = 'position:absolute;top:8px;right:8px;width:250px;max-width:calc(100vw - 24px);background:#233138;color:#e9edef;border-radius:4px;padding:6px 0;box-shadow:0 5px 18px rgba(0,0,0,.45);font-size:15px';
+
+  const items = [
+    ['👥', 'Nuevo grupo', () => newGroup()],
+    ['📢', 'Listas de difusión', () => toast2('Las listas de difusión todavía no están disponibles')],
+    ['💻', 'Dispositivos vinculados', () => toast2('Esta función todavía no está disponible')],
+    ['⭐', 'Mensajes destacados', () => { location.href = '/starred.html'; }],
+    ['✓', 'Marcar todos como leídos', () => markAllRead()],
+    ['⚙', 'Ajustes', () => { location.href = '/settings.html'; }]
+  ];
+
+  items.forEach(([icon, label, action]) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'height:48px;padding:0 17px;display:flex;align-items:center;gap:15px;cursor:pointer';
+
+    const ico = document.createElement('span');
+    ico.textContent = icon;
+    ico.style.cssText = 'width:20px;text-align:center;font-size:17px';
+
+    const txt = document.createElement('span');
+    txt.textContent = label;
+
+    item.append(ico, txt);
+    item.onclick = () => { ov.remove(); action(); };
+    item.onmouseenter = () => item.style.background = '#34434a';
+    item.onmouseleave = () => item.style.background = 'transparent';
+    box.appendChild(item);
+  });
+
+  ov.appendChild(box);
+  document.body.appendChild(ov);
 }
+
 async function newChat() {
   const v = prompt('Número con código de país (ej: 59899123456)')
   const n = (v || '').replace(/\D/g, '')
@@ -363,14 +390,181 @@ async function newChat() {
   location.href = '/chat.html?id=' + encodeURIComponent(r.jid)
 }
 async function newGroup() {
-  const subject = prompt('Nombre del grupo')
-  if (!subject || !subject.trim()) return
-  const v = prompt('Números de los miembros, separados por coma')
-  const numbers = (v || '').split(',').map(x => x.replace(/\D/g, '')).filter(Boolean)
-  if (!numbers.length) return
-  const r = await (await fetch('/api/group-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: subject.trim(), numbers }) })).json()
-  if (!r.ok) { alert(r.error || 'No se pudo crear el grupo'); return }
-  location.href = '/chat.html?id=' + encodeURIComponent(r.id)
+  const people = Object.entries(allChats || {})
+    .filter(([id]) => id.endsWith('@s.whatsapp.net'))
+    .map(([id, c]) => ({
+      id,
+      number: id.split('@')[0].split(':')[0].replace(/\D/g, ''),
+      name: c.name && !c.name.includes('@') ? c.name : id.split('@')[0]
+    }))
+    .filter(p => p.number.length >= 7)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (!people.length) {
+    toast2('No hay contactos disponibles en los chats conocidos por el bot');
+    return;
+  }
+
+  const ov = document.createElement('div');
+  ov.id = 'newGroupScreen';
+  ov.style.cssText = 'position:fixed;inset:0;background:#0b141a;color:#e9edef;z-index:995;display:flex;flex-direction:column;font-family:inherit';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'height:60px;display:flex;align-items:center;gap:18px;padding:0 16px;flex-shrink:0';
+
+  const back = document.createElement('span');
+  back.textContent = '←';
+  back.style.cssText = 'font-size:25px;cursor:pointer';
+  back.onclick = () => ov.remove();
+
+  const heading = document.createElement('div');
+  heading.innerHTML = '<div style="font-size:18px;font-weight:600">Nuevo grupo</div><div style="font-size:12px;color:#8696a0">Añade participantes</div>';
+  header.append(back, heading);
+
+  const search = document.createElement('input');
+  search.placeholder = 'Buscar nombre o número...';
+  search.style.cssText = 'margin:8px 16px 12px;padding:12px 16px;border:0;border-radius:24px;background:#202c33;color:#e9edef;font-size:15px;outline:none;flex-shrink:0';
+
+  const selectedBar = document.createElement('div');
+  selectedBar.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding:4px 16px 12px;flex-shrink:0';
+
+  const count = document.createElement('div');
+  count.style.cssText = 'padding:8px 16px;color:#8696a0;font-size:13px;flex-shrink:0';
+
+  const list = document.createElement('div');
+  list.style.cssText = 'flex:1;overflow-y:auto';
+
+  const footer = document.createElement('div');
+  footer.style.cssText = 'padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:#111b21;flex-shrink:0';
+
+  const nameInput = document.createElement('input');
+  nameInput.placeholder = 'Nombre del grupo';
+  nameInput.maxLength = 100;
+  nameInput.style.cssText = 'box-sizing:border-box;width:100%;padding:13px 15px;border:1px solid #34434a;border-radius:10px;background:#202c33;color:#e9edef;font-size:15px;outline:none;margin-bottom:10px';
+
+  const create = document.createElement('button');
+  create.textContent = 'Crear grupo';
+  create.style.cssText = 'width:100%;padding:13px;border:0;border-radius:25px;background:#00a884;color:#062e26;font-size:15px;font-weight:700;cursor:pointer';
+  create.disabled = true;
+  create.style.opacity = '.5';
+
+  const chosen = new Set();
+
+  function drawSelected() {
+    selectedBar.innerHTML = '';
+
+    chosen.forEach(id => {
+      const p = people.find(x => x.id === id);
+      if (!p) return;
+
+      const chip = document.createElement('div');
+      chip.textContent = '× ' + p.name;
+      chip.style.cssText = 'white-space:nowrap;background:#1f6658;padding:8px 12px;border-radius:18px;font-size:13px;cursor:pointer';
+      chip.onclick = () => { chosen.delete(id); draw(); };
+      selectedBar.appendChild(chip);
+    });
+
+    count.textContent = chosen.size + ' de ' + people.length + ' contactos seleccionados';
+    create.disabled = chosen.size === 0 || !nameInput.value.trim();
+    create.style.opacity = create.disabled ? '.5' : '1';
+  }
+
+  function draw() {
+    const q = search.value.trim().toLowerCase();
+    list.innerHTML = '';
+
+    const filtered = people.filter(p =>
+      p.name.toLowerCase().includes(q) || p.number.includes(q)
+    );
+
+    filtered.forEach(p => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:13px;padding:10px 16px;min-height:54px;cursor:pointer';
+
+      const avatar = document.createElement('div');
+      avatar.textContent = (p.name[0] || '?').toUpperCase();
+      avatar.style.cssText = 'width:46px;height:46px;border-radius:50%;background:#34434a;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0';
+
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0';
+
+      const nm = document.createElement('div');
+      nm.textContent = p.name;
+      nm.style.cssText = 'font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+
+      const num = document.createElement('div');
+      num.textContent = '+' + p.number;
+      num.style.cssText = 'font-size:12px;color:#8696a0;margin-top:3px';
+      info.append(nm, num);
+
+      const check = document.createElement('div');
+      check.textContent = chosen.has(p.id) ? '✓' : '';
+      check.style.cssText = 'width:21px;height:21px;border:2px solid ' + (chosen.has(p.id) ? '#00a884' : '#8696a0') + ';border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:' + (chosen.has(p.id) ? '#00a884' : 'transparent');
+      check.style.fontSize = '13px';
+
+      row.append(avatar, info, check);
+      row.onclick = () => {
+        if (chosen.has(p.id)) chosen.delete(p.id);
+        else chosen.add(p.id);
+        draw();
+      };
+
+      list.appendChild(row);
+    });
+
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.textContent = 'No se encontraron contactos';
+      empty.style.cssText = 'padding:25px 16px;text-align:center;color:#8696a0';
+      list.appendChild(empty);
+    }
+
+    drawSelected();
+  }
+
+  search.oninput = draw;
+  nameInput.oninput = drawSelected;
+
+  create.onclick = async () => {
+    const subject = nameInput.value.trim();
+    const numbers = [...chosen]
+      .map(id => people.find(p => p.id === id)?.number)
+      .filter(Boolean);
+
+    if (!subject || !numbers.length) return;
+
+    create.disabled = true;
+    create.textContent = 'Creando grupo...';
+
+    try {
+      const response = await fetch('/api/group-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, numbers })
+      });
+
+      const result = await response.json();
+
+      if (!result.ok) {
+        alert(result.error || 'No se pudo crear el grupo');
+        create.textContent = 'Crear grupo';
+        drawSelected();
+        return;
+      }
+
+      ov.remove();
+      location.href = '/chat.html?id=' + encodeURIComponent(result.id);
+    } catch (error) {
+      alert('Error de conexión al crear el grupo');
+      create.textContent = 'Crear grupo';
+      drawSelected();
+    }
+  };
+
+  footer.append(nameInput, create);
+  ov.append(header, search, selectedBar, count, list, footer);
+  document.body.appendChild(ov);
+  draw();
 }
 
 function renderListChips() {
