@@ -7,6 +7,7 @@ import { fileURLToPath } from "url"
 import path from "path"
 import * as db from "./db.js"
 import nodeCrypto from "crypto"
+import { registerSettingsRoutes, prefsInjector } from "./settings-api.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = path.dirname(__filename)
@@ -45,6 +46,7 @@ app.use((req, res, next) => {
   if (req.method === "GET" && !req.path.startsWith("/api") && !req.path.startsWith("/socket.io")) return res.redirect("/login")
   res.status(401).json({ error: "No autorizado" })
 })
+app.use(prefsInjector(path.join(__dirname, "public")))
 app.use(express.static(path.join(__dirname, "public")))
 app.use("/media", express.static(db.MEDIA_DIR))
 
@@ -52,6 +54,7 @@ app.use("/media", express.static(db.MEDIA_DIR))
 // 🤖 IMPORTAR BOT
 // ========================
 let botModule = null
+registerSettingsRoutes(app, { getConn: () => botModule?.getConn?.(), mediaDir: db.MEDIA_DIR, dataDir: path.join(__dirname, "data"), rootDir: path.join(__dirname, "..") })
 
 async function loadBot() {
   try {

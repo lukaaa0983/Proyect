@@ -21,6 +21,8 @@ import { fileURLToPath } from 'url';
 import { Boom } from '@hapi/boom';
 import config from './config.js';
 import { Handler } from './handler.js';
+import { attachContacts, getContacts as getKnownContacts } from './lib/contacts.js';
+export { getKnownContacts as getContacts };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -206,7 +208,7 @@ export async function sendToWhatsApp(chatId, content, replyTo = null, media = nu
                    : media.type === 'audio' ? { audio: buf, mimetype: mime, ptt: !!media.ptt }
                    : media.type === 'sticker' ? { sticker: buf }
                    : media.type === 'document' ? { document: buf, fileName: media.fileName || 'archivo', mimetype: mime, caption: content || undefined }
-                   : { image: buf, caption: content || undefined };
+                   : { image: buf, caption: content || undefined, ...(media.viewOnce ? { viewOnce: true } : {}) };
         return await tracked(() => conn.sendMessage(chatId, body, options));
     }
     return await tracked(() => conn.sendMessage(chatId, { text: content, ...(mentions && mentions.length ? { mentions } : {}) }, options));
@@ -759,6 +761,7 @@ async function buildSocket() {
 
     conn.ev.on('connection.update', (update) => handleConnectionUpdate(conn, update));
     conn.ev.on('creds.update',      saveCreds);
+    attachContacts(conn);
 
     conn.ev.on('messages.reaction', (list) => list.forEach(r => post('/reaction', {
         chatId: r.key.remoteJid, msgId: r.key.id,

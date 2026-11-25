@@ -42,3 +42,4 @@ node_modules/
 **/sesion/
 **/secrets.jsonl
 node_modules/
+bot/contactos.json
