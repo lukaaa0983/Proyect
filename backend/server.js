@@ -6,6 +6,9 @@ import fs from "fs"
 import { fileURLToPath } from "url"
 import path from "path"
 import * as db from "./db.js"
+import { getContacts } from "../bot/lib/contacts.js"
+import { registerActivity } from "./activity.js"
+import { registerCallRoutes } from "./calls.js"
 import nodeCrypto from "crypto"
 import { registerSettingsRoutes, prefsInjector } from "./settings-api.js"
 
@@ -49,6 +52,8 @@ app.use((req, res, next) => {
 app.use(prefsInjector(path.join(__dirname, "public")))
 app.use(express.static(path.join(__dirname, "public")))
 app.use("/media", express.static(db.MEDIA_DIR))
+registerActivity(app, { io, getBot: () => botModule, db })
+registerCallRoutes(app, { io })
 
 // ========================
 // 🤖 IMPORTAR BOT
@@ -522,6 +527,28 @@ async function pnFor(conn, p) {
   if (pn) return pn
   try { return (await conn.signalRepository?.lidMapping?.getPNForLID?.(p.id)) || p.id } catch { return p.id }
 }
+
+app.get("/api/contact/:id", (req, res) => {
+  try {
+    const raw = decodeURIComponent(req.params.id);
+    const clean = v => String(v || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+    const target = clean(raw);
+    const contacts = getContacts();
+    const c = contacts.find(x =>
+      [x.pn, x.lid, x.key].some(v =>
+        String(v || "") === raw || (target && clean(v) === target)
+      )
+    );
+    res.json({
+      ok: true,
+      saved: !!c?.name,
+      name: String(c?.name || ""),
+      notify: String(c?.notify || "")
+    });
+  } catch (e) {
+    res.json({ ok: false, saved: false, name: "", notify: "" });
+  }
+});
 
 app.get("/api/pn/:id", async (req, res) => {
   try {

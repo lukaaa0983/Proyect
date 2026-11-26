@@ -552,11 +552,45 @@ input.addEventListener('keydown', (e) => {
 
 async function loadChat() {
   const data = await API.getChat(chatId)
-  const name = data.name || chatId
-  document.getElementById('chatName').textContent   = name
-  document.getElementById('avatar').textContent     = name.charAt(0).toUpperCase()
-  document.getElementById('chatStatus').textContent = chatId.endsWith('@g.us') ? 'Grupo de WhatsApp' : 'WhatsApp'
+  const isGroup = chatId.endsWith('@g.us')
+  let phone = ''
+
+  if (!isGroup) {
+    if (chatId.endsWith('@s.whatsapp.net')) {
+      phone = chatId.split('@')[0].split(':')[0].replace(/\D/g, '')
+    } else if (chatId.endsWith('@lid')) {
+      try {
+        const r = await (await fetch('/api/pn/' + encodeURIComponent(chatId))).json()
+        phone = String(r.pn || '').replace(/\D/g, '')
+      } catch {}
+    }
+  }
+
+  const rawName = String(data.name || '').trim()
+  const nameIsNumber = rawName && /^[+\d\s().-]+$/.test(rawName)
+  const name = isGroup
+    ? (rawName || 'Grupo')
+    : (rawName && rawName !== chatId && !nameIsNumber
+      ? rawName
+      : (phone ? '+' + phone : (rawName || 'Contacto')))
+
+  document.getElementById('chatName').textContent = name
+  document.getElementById('avatar').textContent = name.charAt(0).toUpperCase()
+  document.getElementById('chatStatus').textContent =
+    isGroup ? 'Grupo de WhatsApp' : ''
   document.title = name
+
+  if (!isGroup) {
+    fetch('/api/pfp/' + encodeURIComponent(chatId))
+      .then(r => r.json())
+      .then(r => {
+        if (r.url) {
+          const avatar = document.getElementById('avatar')
+          avatar.innerHTML = '<img src="' + r.url + '" alt="">'
+        }
+      }).catch(() => {})
+  }
+
   messagesEl.querySelectorAll('.msg-wrap, .date-divider').forEach(el => el.remove())
   lastDate = null
   const messages = data.messages || []

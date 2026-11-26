@@ -243,19 +243,101 @@ html #pill #msgInput{align-self:stretch}
 html #sendBtn{background:#21c063 !important;color:#0b141a !important;display:flex;align-items:center;justify-content:center;width:50px !important;height:50px !important;padding:0 !important;font-size:0 !important;border-radius:50% !important}
 html #sendBtn svg{display:block}
 </style>
+
+<style id="wa-chat-header-final">
+#header.wa-chat-header {
+  height:60px; min-height:60px; padding:0 8px 0 10px;
+  gap:0; background:#202c33!important; border:0!important;
+  display:flex; align-items:center; flex-shrink:0;
+}
+#header .wa-back {
+  width:38px; height:48px; flex:0 0 38px; border:0;
+  background:transparent; color:#e9edef; display:flex;
+  align-items:center; justify-content:center; padding:0;
+}
+#header .wa-back svg {
+  width:25px; height:25px; fill:none; stroke:currentColor;
+  stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+}
+#header .wa-chat-avatar {
+  width:42px!important; height:42px!important;
+  flex:0 0 42px; margin:0 10px 0 0;
+  border:0!important; background:#374248!important;
+  color:#e9edef!important; font-size:18px!important;
+  overflow:hidden; cursor:pointer;
+}
+#header .wa-chat-avatar img {
+  width:100%; height:100%; object-fit:cover; border-radius:50%;
+}
+#header #header-info {
+  flex:1; min-width:0; display:flex; flex-direction:column;
+  justify-content:center; gap:2px; cursor:pointer; padding:0;
+}
+#header #chatName {
+  font-size:16px; line-height:21px; font-weight:600;
+  color:#e9edef; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis;
+}
+#header #chatStatus {
+  font-size:12px; line-height:16px; color:#aebac1;
+  margin:0; white-space:nowrap; overflow:hidden;
+}
+#header #chatStatus:empty { display:none; }
+#header .wa-head-action {
+  width:42px; height:48px; flex:0 0 42px;
+  display:flex; align-items:center; justify-content:center;
+  padding:0; border:0; background:transparent; color:#e9edef;
+}
+#header .wa-head-action svg {
+  width:24px; height:24px; fill:none; stroke:currentColor;
+  stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round;
+}
+#header .wa-more { width:34px; flex-basis:34px; }
+#header .wa-more svg { fill:currentColor; stroke:none; }
+@media(max-width:380px) {
+  #header.wa-chat-header { padding-left:5px; padding-right:4px; }
+  #header .wa-chat-avatar {
+    width:39px!important; height:39px!important;
+    flex-basis:39px; margin-right:8px;
+  }
+  #header .wa-head-action { width:36px; flex-basis:36px; }
+  #header .wa-more { width:28px; flex-basis:28px; }
+}
+</style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div id="header">
-    <div class="icon-btn" style="color:var(--gold);font-size:20px" onclick="history.length > 1 ? history.back() : location.href='/'">←</div>
-    <div class="avatar" id="avatar" style="width:42px;height:42px;font-size:18px;border-color:var(--gold-dim);border-radius:50%">?</div>
-    <div id="header-info" onclick="location.href = (chatId.endsWith('@g.us') ? '/group.html?id=' : '/contact.html?id=') + encodeURIComponent(chatId)" style="cursor:pointer">
+  <!-- CABECERA WHATSAPP -->
+  <header id="header" class="wa-chat-header">
+    <button class="wa-back" type="button" aria-label="Volver"
+      onclick="history.length > 1 ? history.back() : location.href='/'">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="avatar wa-chat-avatar" id="avatar"
+      role="button" tabindex="0" aria-label="Ver contacto"
+      onclick="openChatProfile()">?</div>
+    <div id="header-info" role="button" tabindex="0"
+      onclick="openChatProfile()">
       <div id="chatName">Cargando...</div>
-      <div id="chatStatus">WhatsApp</div>
+      <div id="chatStatus"></div>
     </div>
-    <div class="icon-btn" id="hdrVideo" onclick="callPeer(true)" style="font-size:20px;padding:6px 8px">📹</div><div class="icon-btn" id="hdrCall" onclick="callPeer(false)" style="font-size:20px;padding:6px 8px">📞</div><div class="icon-btn" onclick="toggleChatMenu(event)" style="font-size:22px;padding:6px 10px">⋮</div>
-  </div>
+    <button class="wa-head-action" id="hdrVideo" type="button"
+      aria-label="Videollamada" onclick="callPeer(true)">
+      <svg viewBox="0 0 24 24"><path d="M15 10l5-3v10l-5-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg>
+    </button>
+    <button class="wa-head-action" id="hdrCall" type="button"
+      aria-label="Llamada" onclick="callPeer(false)">
+      <svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-3 2a15 15 0 0 0 5 5l2-3 5 2v4c0 1-1 2-2 2C10 21 3 14 3 6c0-1 1-2 2-2z"/></svg>
+    </button>
+    <button class="wa-head-action wa-more" type="button"
+      aria-label="Más opciones" onclick="toggleChatMenu(event)">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="5" r="1.7"/>
+        <circle cx="12" cy="12" r="1.7"/>
+        <circle cx="12" cy="19" r="1.7"/>
+      </svg>
+    </button>
+  </header>
 
   <!-- MENSAJES -->
   <div id="messages">
@@ -337,6 +419,14 @@ async function openGroupInfo() {
 </script>
   <script src="/js/ui.js"></script>
   <script src="/js/chat.js"></script>
+  <script src="/js/activity.js"></script>
   <script src="/js/photo.js"></script>
+<script>
+function openChatProfile() {
+  location.href = (chatId.endsWith('@g.us')
+    ? '/group.html?id=' : '/contact.html?id=')
+    + encodeURIComponent(chatId);
+}
+</script>
 </body>
 </html>

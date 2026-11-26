@@ -1,162 +1,474 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Info del contacto</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b141a">
+<title>Info. del contacto</title>
 <style>
+:root {
+  color-scheme:dark;
+  --bg:#0b141a;
+  --panel:#111b21;
+  --surface:#202c33;
+  --surface2:#2a3942;
+  --text:#e9edef;
+  --muted:#8696a0;
+  --green:#00a884;
+  --red:#f15c6d;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#0b1014;color:#e9edef;font-family:system-ui,sans-serif;height:100dvh;overflow-y:auto}
-#top{display:flex;justify-content:space-between;padding:14px 16px;font-size:24px;position:sticky;top:0;background:#0b1014;z-index:5}
-#top span{cursor:pointer;padding:0 6px}
-#av{width:136px;height:136px;border-radius:50%;background:#3a2c1e;margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Roboto,"Segoe UI",system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
+button{font:inherit;color:inherit}
+#top{height:56px;display:flex;align-items:center;padding:0 16px;gap:25px;position:sticky;top:0;background:var(--bg);z-index:5}
+.topbtn{width:28px;height:42px;border:0;background:none;display:grid;place-items:center;padding:0}
+.topbtn svg{width:24px;height:24px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#hero{padding:0 16px 22px;text-align:center}
+#av{width:120px;height:120px;margin:0 auto 10px;border-radius:50%;overflow:hidden;background:#24213f;display:grid;place-items:center;color:#b49cff}
+#av svg{width:62px;height:62px;fill:currentColor}
 #av img{width:100%;height:100%;object-fit:cover}
-#name{text-align:center;font-size:28px;margin-top:18px}#num{text-align:center;color:#8696a0;font-size:20px;margin-top:6px}
-#acts{display:flex;justify-content:center;gap:18px;margin:22px 0 8px}
-.act{text-align:center;font-size:14px;cursor:pointer;width:84px}.act i{display:flex;align-items:center;justify-content:center;width:84px;height:54px;border-radius:27px;background:#1f2a31;font-style:normal;font-size:22px;margin-bottom:8px}
-.row{display:flex;align-items:center;gap:22px;padding:16px 20px;cursor:pointer}.row:active{background:#18222a}
-.ri{width:30px;text-align:center;font-size:22px;color:#8696a0}.rt{flex:1;min-width:0;font-size:18px}.rs{color:#8696a0;font-size:15px;margin-top:3px}
-.sec{display:flex;justify-content:space-between;padding:20px 20px 10px;color:#8696a0;font-size:16px;cursor:pointer;border-top:8px solid #0e161b}
-#strip{display:flex;gap:6px;padding:0 20px 16px;overflow-x:auto}#strip .t{width:112px;height:112px;border-radius:12px;background:#000;flex-shrink:0;object-fit:cover}
-.sw{width:56px;height:32px;border-radius:16px;border:2px solid #8696a0;position:relative;flex-shrink:0}.sw:after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#8696a0;transition:.2s}.sw.on{border-color:#00a884;background:#00a88433}.sw.on:after{left:28px;background:#00a884}
-#sheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:flex-end}#sheet.open{display:flex}
-#sbox{background:#1f2c34;width:100%;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom))}#sbox .row{padding:16px 22px}
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#2a3942;padding:10px 18px;border-radius:20px;display:none;z-index:60;font-size:14px}
+#name{font-size:24px;line-height:30px;font-weight:400;overflow-wrap:anywhere;margin-top:4px}
+#num{font-size:16px;color:var(--muted);margin-top:5px;min-height:20px}
+#acts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:0 16px 20px;border-bottom:8px solid var(--panel)}
+.act{border:0;background:none;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text);font-size:12px}
+.act-icon{height:48px;width:100%;max-width:66px;border-radius:28px;background:var(--surface);display:grid;place-items:center}
+.act-icon svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.act-label{white-space:nowrap}
+#app{padding-bottom:35px}
+.section{padding:18px 16px 8px;color:var(--muted);font-size:14px}
+.section-head{display:flex;align-items:center;justify-content:space-between;color:var(--muted);padding:18px 16px 12px;font-size:14px}
+.section-head button{border:0;background:none;color:var(--green);font-size:14px}
+.row{width:100%;min-height:64px;display:flex;align-items:center;gap:19px;padding:12px 20px;border:0;background:transparent;text-align:left}
+.row:active{background:var(--surface)}
+.ri{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;color:var(--muted)}
+.ri svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.rt{min-width:0;flex:1;font-size:15px;line-height:20px}
+.rs{color:var(--muted);font-size:13px;line-height:18px;margin-top:3px}
+.chev{color:var(--muted);font-size:22px}
+#mediaStrip{display:flex;gap:8px;overflow-x:auto;padding:0 16px 16px;scrollbar-width:thin}
+.thumb{width:112px;height:112px;flex:0 0 112px;border-radius:8px;object-fit:cover;background:var(--surface)}
+.media-empty{padding:8px 16px 18px;color:var(--muted);font-size:13px}
+.sw{width:42px;height:24px;border-radius:20px;border:2px solid #8696a0;position:relative;flex:0 0 42px}
+.sw:after{content:"";position:absolute;width:16px;height:16px;top:2px;left:2px;border-radius:50%;background:#8696a0;transition:.18s}
+.sw.on{background:#005c4b;border-color:#00a884}
+.sw.on:after{left:20px;background:#00a884}
+.danger{color:var(--red)}
+.danger .ri{color:var(--red)}
+#sheet{display:none;position:fixed;inset:0;background:#0009;z-index:20;align-items:flex-end}
+#sheet.open{display:flex}
+#sbox{width:100%;max-height:75dvh;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:14px 0 calc(16px + env(safe-area-inset-bottom))}
+.sheet-handle{height:4px;width:36px;background:#667781;border-radius:5px;margin:0 auto 12px}
+.sheet-title{padding:8px 20px 14px;font-size:17px;font-weight:500}
+.sheet-item{width:100%;min-height:54px;padding:14px 22px;border:0;background:none;text-align:left;font-size:15px}
+.sheet-item:active{background:var(--surface2)}
+#toast{position:fixed;z-index:30;bottom:30px;left:50%;transform:translateX(-50%);background:#26343c;color:var(--text);padding:12px 18px;border-radius:24px;font-size:13px;max-width:90vw;display:none;box-shadow:0 3px 12px #0005}
+#noteText{white-space:pre-wrap;padding:0 20px 12px 63px;color:var(--muted);font-size:13px}
+@media(max-width:360px){
+ #av{width:108px;height:108px}
+ #acts{gap:4px;padding-left:9px;padding-right:9px}
+ .act{font-size:11px}
+ .act-icon{max-width:60px}
+}
 </style>
 </head>
 <body>
-<div id="top"><span onclick="history.back()">←</span><span onclick="moreMenu()">⋮</span></div>
-<div id="av"><svg width="64" height="64" viewBox="0 0 24 24" fill="#f6c36b"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c0-4.6 3.8-7.2 8.5-7.2s8.5 2.6 8.5 7.2z"/></svg></div>
-<div id="name">...</div><div id="num"></div>
-<div id="acts"></div>
-<div id="app"></div>
-<div id="sheet" onclick="if(event.target===this)this.classList.remove('open')"><div id="sbox"></div></div>
-<div id="toast"></div>
+<header id="top">
+ <button class="topbtn" onclick="history.back()" aria-label="Volver">
+  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+ </button>
+ <button class="topbtn" style="margin-left:auto" onclick="moreMenu()" aria-label="Más opciones">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/></svg>
+ </button>
+</header>
+
+<section id="hero">
+ <div id="av">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M3.5 21c0-4.6 3.8-7.2 8.5-7.2s8.5 2.6 8.5 7.2z"/></svg>
+ </div>
+ <div id="name">Cargando...</div>
+ <div id="num"></div>
+</section>
+
+<nav id="acts">
+ <button class="act" onclick="callContact()">
+  <span class="act-icon"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-3 2a15 15 0 0 0 5 5l2-3 5 2v4c0 1-1 2-2 2C10 21 3 14 3 6c0-1 1-2 2-2z"/></svg></span>
+  <span class="act-label">Llamar</span>
+ </button>
+ <button class="act" onclick="videoContact()">
+  <span class="act-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3z"/></svg></span>
+  <span class="act-label">Video</span>
+ </button>
+ <button class="act" onclick="saveContact()">
+  <span class="act-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.4-4 2.7-6 6.5-6 2.1 0 3.7.7 4.8 2M19 8v8m-4-4h8"/></svg></span>
+  <span class="act-label">Guardar</span>
+ </button>
+ <button class="act" onclick="searchChat()">
+  <span class="act-icon"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg></span>
+  <span class="act-label">Buscar</span>
+ </button>
+</nav>
+
+<main id="app"></main>
+
+<div id="sheet" onclick="if(event.target===this)closeSheet()">
+ <div id="sbox"><div class="sheet-handle"></div></div>
+</div>
+<div id="toast" role="status"></div>
+
 <script>
-const id = new URLSearchParams(location.search).get('id')
-const $ = s => document.getElementById(s)
-let digits = id.split('@')[0].split(':')[0].replace(/\D/g, '')
-const isLid = id.endsWith('@lid')
-const fmt = d => d.startsWith('598') ? '+598 ' + d.slice(3).replace(/^(\d{2})(\d{3})(\d{3})$/, '$1 $2 $3') : '+' + d
-let chat = { name: '', messages: [] }, store = { bytes: 0, files: 0 }
+'use strict';
+const id = new URLSearchParams(location.search).get('id') || '';
+const $ = s => document.getElementById(s);
+const digitsOf = j => String(j || '').split('@')[0].split(':')[0].replace(/\D/g,'');
+let digits = digitsOf(id);
+const isLid = id.endsWith('@lid');
+const isGroup = id.endsWith('@g.us');
+const fmt = d => {
+ d = String(d || '').replace(/\D/g,'');
+ if (!d) return '';
+ if (d.startsWith('598') && d.length === 11) return '+598 ' + d.slice(3,5) + ' ' + d.slice(5,8) + ' ' + d.slice(8);
+ return '+' + d;
+};
+const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let chat = {name:'',messages:[]};
+let store = {bytes:0,files:0};
+let contact = {saved:false,name:'',notify:''};
+let toastTimer;
 
-const cs = () => { try { return JSON.parse(localStorage.getItem('chatState') || '{}') } catch { return {} } }
-const st = () => cs()[id] || {}
-function setSt(patch) { const all = cs(); all[id] = { ...(all[id] || {}), ...patch }; localStorage.setItem('chatState', JSON.stringify(all)) }
-function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200) }
-function sheet(items) {
-  $('sbox').innerHTML = ''
-  items.forEach(([label, fn]) => { const d = document.createElement('div'); d.className = 'row'; d.textContent = label; d.onclick = () => { $('sheet').classList.remove('open'); if (fn) fn() }; $('sbox').appendChild(d) })
-  $('sheet').classList.add('open')
+function toast(message) {
+ const el=$('toast');
+ el.textContent=message;
+ el.style.display='block';
+ clearTimeout(toastTimer);
+ toastTimer=setTimeout(()=>el.style.display='none',2600);
 }
-const size = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : b >= 1024 ? Math.round(b / 1024) + ' KB' : b + ' B'
-const allLists = () => [...new Set(Object.values(cs()).flatMap(s => s.lists || []))]
+function api(url,options={}) {
+ return fetch(url,options).then(async r=>{
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || 'Error de conexión');
+  return data;
+ });
+}
+function post(url,data) {
+ return api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+}
+function cs(){try{return JSON.parse(localStorage.getItem('chatState')||'{}')}catch{return {}}}
+function state(){return cs()[id]||{}}
+function setState(patch){
+ const all=cs();all[id]={...(all[id]||{}),...patch};
+ localStorage.setItem('chatState',JSON.stringify(all));
+}
+function openSheet(title,items){
+ const box=$('sbox');
+ box.innerHTML='<div class="sheet-handle"></div><div class="sheet-title">'+esc(title)+'</div>';
+ items.forEach(item=>{
+  const b=document.createElement('button');
+  b.className='sheet-item'+(item.danger?' danger':'');
+  b.textContent=item.label;
+  b.onclick=()=>{closeSheet();item.run?.()};
+  box.appendChild(b);
+ });
+ $('sheet').classList.add('open');
+}
+function closeSheet(){$('sheet').classList.remove('open')}
 
-async function load() {
-  chat = await (await fetch('/chat/' + encodeURIComponent(id))).json()
-  try { store = await (await fetch('/api/storage/' + encodeURIComponent(id))).json() } catch {}
-  $('name').textContent = chat.name || (isLid ? 'Contacto' : fmt(digits))
-  $('num').textContent = isLid ? '' : fmt(digits)
-  if (isLid) { try { const r = await (await fetch('/api/pn/' + encodeURIComponent(id))).json(); if (r.pn) { digits = r.pn.replace(/\D/g, ''); $('num').textContent = fmt(digits) } } catch (e) {} }
-  document.title = $('name').textContent
-  fetch('/api/pfp/' + encodeURIComponent(id)).then(r => r.json()).then(r => { if (r.url) $('av').innerHTML = '<img src="' + r.url + '">' }).catch(() => {})
-  render()
+function callContact(){
+ if(!digits){toast('No hay un número disponible para llamar');return}
+ location.href='tel:+'+digits;
 }
+function videoContact(){
+ toast('Las videollamadas salientes todavía no están implementadas en el panel.');
+}
+function saveContact(){
+ if(!digits){toast('No hay número para guardar');return}
+ const display=contact.name || contact.notify || chat.name || fmt(digits);
+ const vcard='BEGIN:VCARD\r\nVERSION:3.0\r\nFN:'+display.replace(/[\r\n;]/g,' ')+'\r\nTEL;TYPE=CELL:+ '+digits+'\r\nEND:VCARD';
+ const blob=new Blob([vcard],{type:'text/vcard;charset=utf-8'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=(display.replace(/[^a-z0-9_-]/gi,'_')||'contacto')+'.vcf';
+ a.click();URL.revokeObjectURL(a.href);
+ toast('Contacto preparado para guardar');
+}
+function searchChat(){
+ location.href='/chat.html?id='+encodeURIComponent(id);
+}
+function openChat(){
+ location.href='/chat.html?id='+encodeURIComponent(id);
+}
+function size(bytes){
+ const b=Number(bytes)||0;
+ return b>=1048576?(b/1048576).toFixed(1)+' MB':b>=1024?Math.round(b/1024)+' KB':b+' B';
+}
+function mediaItems(){
+ return (chat.messages||[]).filter(m=>m.mediaUrl);
+}
+function linksCount(){
+ return (chat.messages||[]).reduce((n,m)=>n+((m.content||'').match(/https?:\/\/[^\s]+/g)||[]).length,0);
+}
+function fileCount(){return mediaItems().length+linksCount()}
+function mediaUrl(m){return String(m.mediaUrl||'')}
+function renderMedia(){
+ const list=mediaItems().filter(m=>/\.(jpe?g|png|webp|gif|mp4|webm)(\?|$)/i.test(mediaUrl(m))).slice(-8).reverse();
+ return list.map(m=>{
+  const url=esc(mediaUrl(m));
+  if(/\.(mp4|webm)(\?|$)/i.test(url)) return '<video class="thumb" src="'+url+'" muted playsinline></video>';
+  return '<img class="thumb" src="'+url+'" loading="lazy" alt="Multimedia">';
+ }).join('');
+}
+function row(icon,title,sub='',action='',extra=''){
+ return '<button class="row" type="button" onclick="'+action+'"><span class="ri">'+icon+'</span><span class="rt">'+title+(sub?'<span class="rs">'+sub+'</span>':'')+'</span>'+extra+'</button>';
+}
+const icons={
+ folder:'<svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/><path d="M3 9h18"/></svg>',
+ note:'<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+ storage:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h.01M11 8h.01M15 8h.01M7 16h10"/></svg>',
+ bell:'<svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>',
+ image:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.5"/><path d="m4 17 5-5 3 3 3-4 5 6"/></svg>',
+ clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ lock:'<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>',
+ shield:'<svg viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3 8-8 10-5-2-8-5-8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>',
+ file:'<svg viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v6h5M9 14h7M9 17h7"/></svg>',
+ group:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-6 6-6s6 2 6 6M16 5a3 3 0 0 1 0 6M17 14c2 0 4 2 4 5"/></svg>',
+ search:'<svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>',
+ block:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>'
+};
 
-function render() {
-  $('acts').innerHTML = '<div class="act" onclick="location.href=\'tel:+' + digits + '\'"><i>📞</i>Llamar</div><div class="act" onclick="window.open(\'https://wa.me/' + digits + '\')"><i>📹</i>Video</div><div class="act" onclick="location.href=\'/chat.html?id=' + encodeURIComponent(id) + '&search=1\'"><i>🔍</i>Buscar</div>'
-  const ms = chat.messages.filter(m => m.mediaUrl)
-  const links = chat.messages.reduce((n, m) => n + ((m.content || '').match(/https?:\/\/[^\s]+/g) || []).length, 0)
-  const s = st(), note = localStorage.getItem('note:' + id) || ''
-  const vis = { yes: 'Sí', no: 'No' }[localStorage.getItem('mediavis:' + id)] || 'Predeterminado'
-  const eph = { 0: 'Desactivados', 86400: '24 horas', 604800: '7 días', 7776000: '90 días' }[localStorage.getItem('eph:' + id) || 0]
-  const lists = s.lists && s.lists.length ? s.lists.join(', ') : ''
-  const row = (ic, t, sub, fn, extra = '') => '<div class="row" onclick="' + fn + '"><div class="ri">' + ic + '</div><div class="rt">' + t + (sub ? '<div class="rs">' + sub + '</div>' : '') + '</div>' + extra + '</div>'
-  $('app').innerHTML =
-    row('🗂', 'Añadir a listas', lists, 'listsSheet()') +
-    row('📝', note ? 'Editar notas' : 'Añadir notas', '', 'editNote()').replace('</div></div>', '</div></div>') +
-    (note ? '<div class="rs" id="notetxt" style="padding:0 20px 12px 72px"></div>' : '') +
-    '<div class="sec" onclick="location.href=\'/group.html?id=' + encodeURIComponent(id) + '&tab=1\'"><span>Archivos, enlaces y docs.</span><span>' + (ms.length + links) + ' ›</span></div><div id="strip"></div>' +
-    row('🖼', 'Administrar almacenamiento', size(store.bytes || 0), 'storageSheet()') +
-    row('🔔', 'Notificaciones', s.muted ? 'Silenciadas' : '', 'notifSheet()') +
-    row('🖼', 'Visibilidad de archivos multimedia', vis, 'visSheet()') +
-    row('⏳', 'Mensajes temporales', eph, 'ephSheet()') +
-    row('💬', 'Restringir chat', 'Restringe y oculta este chat en este dispositivo.', 'toggleRestrict()', '<div class="sw ' + (s.restricted ? 'on' : '') + '"></div>')
-  if (note) $('notetxt').textContent = note
-  const strip = $('strip')
-  ms.filter(m => /\.(jpe?g|png|webp|gif|mp4|webm)$/.test(m.mediaUrl)).reverse().slice(0, 6).forEach(m => {
-    const v = /\.(mp4|webm)$/.test(m.mediaUrl), e = document.createElement(v ? 'video' : 'img')
-    e.className = 't'; e.src = m.mediaUrl; strip.appendChild(e)
-  })
-  if (!strip.children.length) strip.style.display = 'none'
-}
-
-function editNote() {
-  const v = prompt('Notas sobre este contacto', localStorage.getItem('note:' + id) || '')
-  if (v === null) return
-  if (v.trim()) localStorage.setItem('note:' + id, v.trim()); else localStorage.removeItem('note:' + id)
-  render()
-}
-function listsSheet() {
-  const mine = st().lists || []
-  const rows = allLists().map(n => [(mine.includes(n) ? '☑ ' : '☐ ') + n, () => { setSt({ lists: mine.includes(n) ? mine.filter(x => x !== n) : [...mine, n] }); render() }])
-  rows.push(['➕ Nueva lista', () => { const n = (prompt('Nombre de la lista') || '').replace(/['"<>]/g, '').trim(); if (n) { setSt({ lists: [...new Set([...mine, n])] }); render() } }])
-  sheet(rows)
-}
-function storageSheet() {
-  sheet([['Archivos de este chat: ' + (store.files || 0) + ' · ' + size(store.bytes || 0)], ['🗑 Borrar multimedia de este chat', async () => {
-    if (!confirm('Se borrarán las fotos, videos y audios guardados de este chat en el panel. ¿Continuar?')) return
-    const r = await (await fetch('/api/storage/' + encodeURIComponent(id) + '/purge', { method: 'POST' })).json()
-    toast('Liberados ' + size(r.freed || 0)); load()
-  }]])
-}
-function notifSheet() {
-  const m = st().muted
-  const mute = ms => () => { setSt({ muted: true, mutedUntil: ms ? Date.now() + ms : 0 }); localStorage.setItem('mute:' + id, '1'); render() }
-  if (m) return sheet([['🔔 Activar notificaciones', () => { setSt({ muted: false, mutedUntil: 0 }); localStorage.setItem('mute:' + id, '0'); render() }]])
-  sheet([['🔕 Silenciar 8 horas', mute(8 * 3600e3)], ['🔕 Silenciar 1 semana', mute(7 * 86400e3)], ['🔕 Silenciar siempre', mute(0)]])
-}
-function visSheet() { const set = v => () => { if (v) localStorage.setItem('mediavis:' + id, v); else localStorage.removeItem('mediavis:' + id); render() }; sheet([['Predeterminado', set('')], ['Sí, mostrar multimedia', set('yes')], ['No, ocultar multimedia en el chat', set('no')]]) }
-function ephSheet() {
-  const set = s => async () => {
-    const r = await (await fetch('/api/ephemeral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: id, seconds: s }) })).json()
-    if (r.ok) { localStorage.setItem('eph:' + id, s); render() } else toast(r.error || 'No se pudo cambiar')
+async function load(){
+ if(!id){toast('No se indicó el contacto');return}
+ try{
+  const [c,s,p,a]=await Promise.all([
+   api('/chat/'+encodeURIComponent(id)),
+   api('/api/storage/'+encodeURIComponent(id)).catch(()=>({bytes:0,files:0})),
+   api('/api/pfp/'+encodeURIComponent(id)).catch(()=>({url:''})),
+   api('/api/contact/'+encodeURIComponent(id)).catch(()=>({saved:false,name:'',notify:''}))
+  ]);
+  chat=c||{name:'',messages:[]};
+  store=s||{bytes:0,files:0};
+  contact=a||{saved:false,name:'',notify:''};
+  if(isLid){
+   const pn=await api('/api/pn/'+encodeURIComponent(id)).catch(()=>({pn:''}));
+   if(pn.pn) digits=digitsOf(pn.pn);
   }
-  sheet([['Desactivados', set(0)], ['24 horas', set(86400)], ['7 días', set(604800)], ['90 días', set(7776000)]])
+  const fallback=String(chat.name||'').trim();
+  const savedName=contact.saved ? contact.name : '';
+  const unsavedName=contact.notify || fallback;
+  $('name').textContent=isGroup?(fallback||'Grupo'):(savedName||fmt(digits)||fallback||'Contacto');
+  $('num').textContent=isGroup?'Grupo de WhatsApp':savedName?fmt(digits):(unsavedName?'~ '+unsavedName:'');
+  document.title=$('name').textContent+' · Info. del contacto';
+  if(p.url) $('av').innerHTML='<img src="'+esc(p.url)+'" alt="Foto de perfil">';
+  render();
+  loadCommonGroups();
+ }catch(e){
+  console.error(e);toast('No se pudo cargar la información del contacto');
+ }
 }
-function toggleRestrict() {
-  const on = !st().restricted
-  setSt({ restricted: on })
-  if (on) toast('Chat oculto de la lista. Búscalo por nombre para abrirlo.')
-  render()
+
+function render(){
+ const s=state();
+ const ephMap={0:'Desactivados',86400:'24 horas',604800:'7 días',7776000:'90 días'};
+ const eph=localStorage.getItem('eph:'+id)||'0';
+ const vis=localStorage.getItem('mediavis:'+id);
+ const note=localStorage.getItem('note:'+id)||'';
+ const media=mediaItems();
+ const links=linksCount();
+ const total=media.length+links;
+ const mute=s.muted?'Silenciadas':'';
+ const name=esc($('name').textContent);
+ const number=esc(fmt(digits));
+ let html='';
+
+ html+='<div class="section-head"><span>Archivos, enlaces y docs.</span><button onclick="openMedia()">'+total+' ›</button></div>';
+ const thumbs=renderMedia();
+ html+=thumbs?'<div id="mediaStrip">'+thumbs+'</div>':'<div class="media-empty">No hay archivos multimedia compartidos</div>';
+ html+='<div style="height:8px;background:var(--panel)"></div>';
+
+ html+=row(icons.storage,'Administrar almacenamiento',size(store.bytes||0),'storageSheet()');
+ html+=row(icons.bell,'Notificaciones',mute,'notifSheet()');
+ html+=row(icons.image,'Visibilidad de archivos multimedia',vis==='yes'?'Mostrar':vis==='no'?'Ocultar':'Predeterminado','visSheet()');
+ html+=row(icons.lock,'Cifrado','Los mensajes y las llamadas están cifrados de extremo a extremo.','encryptionInfo()');
+ html+=row(icons.clock,'Mensajes temporales',ephMap[eph]||'Desactivados','ephSheet()');
+ html+=row(icons.shield,'Restringir chat','Restringe y oculta este chat en este dispositivo.','toggleRestrict()','<span class="sw '+(s.restricted?'on':'')+'"></span>');
+ html+=row(icons.shield,'Chat limitado',s.limited?'Activado':'Desactivado','toggleLimited()','<span class="sw '+(s.limited?'on':'')+'"></span>');
+ html+=row(icons.file,'Transcripciones','Español','unavailable("Las transcripciones todavía no están implementadas.")');
+ html+=row(icons.group,'Traducir mensajes',s.translate?'Activado':'Desactivado','toggleTranslate()','<span class="sw '+(s.translate?'on':'')+'"></span>');
+
+ html+='<div class="section">No hay grupos en común</div><div id="commonGroups"></div>';
+ html+=row(icons.group,'Crear grupo con '+name,'','createGroup()');
+ html+=row(icons.group,'Añadir a grupos','Crear un grupo nuevo con este contacto','createGroup()');
+ html+=row(icons.folder,'Añadir a la lista',s.lists?.join(', ')||'','listsSheet()');
+ html+=row(icons.note,note?'Editar notas':'Añadir notas',note?'Nota guardada en este dispositivo':'','editNote()');
+ html+='<div style="height:8px;background:var(--panel)"></div>';
+ html+=row(icons.file,'Exportar chat','Guardar una copia de los mensajes','exportChat()');
+ html+=row(icons.block,'Vaciar chat','','clearChat()','',);
+ html+=row(icons.block,'Bloquear a '+(number||name),'','blockContact()', 'danger');
+ html+=row(icons.shield,'Reportar a '+(number||name),'','reportContact()','danger');
+
+ $('app').innerHTML=html;
+ if(note) $('app').insertAdjacentHTML('beforeend','<div id="noteText">'+esc(note)+'</div>');
 }
-async function blk(b) {
-  if (!confirm(b ? '¿Bloquear a este contacto?' : '¿Desbloquear a este contacto?')) return
-  const r = await (await fetch('/api/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: id, block: b }) })).json()
-  toast(r.ok ? (b ? 'Contacto bloqueado' : 'Contacto desbloqueado') : (r.error || 'No se pudo cambiar'))
+
+function openMedia(){
+ location.href='/group.html?id='+encodeURIComponent(id)+'&tab=1';
 }
-function moreMenu() {
-  sheet([['🚫 Bloquear contacto', () => blk(true)], ['Desbloquear contacto', () => blk(false)], ['Copiar número', () => { navigator.clipboard && navigator.clipboard.writeText(fmt(digits)); toast('Número copiado') }],
-    ['Exportar chat', () => { const t = chat.messages.map(m => '[' + new Date(m.timestamp).toLocaleString() + '] ' + (m.fromMe ? 'Tú' : (m.senderName || '')) + ': ' + (m.content || (m.mediaUrl ? '<multimedia>' : ''))).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' })); a.download = ($('name').textContent || 'chat') + '.txt'; a.click() }],
-    ['Vaciar chat', async () => { if (!confirm('¿Vaciar todos los mensajes de este chat en el panel?')) return; await fetch('/chat/' + encodeURIComponent(id) + '/clear', { method: 'POST' }); toast('Chat vaciado'); load() }]])
+async function loadCommonGroups(){
+ if(isGroup)return;
+ try{
+  const groups=await api('/api/common/'+encodeURIComponent(id));
+  const box=$('commonGroups');
+  if(!Array.isArray(groups)||!groups.length){
+   box.innerHTML='<div class="media-empty">No hay grupos en común</div>';
+   return;
+  }
+  box.innerHTML='';
+  groups.forEach(g=>{
+   const b=document.createElement('button');
+   b.className='row';
+   b.innerHTML='<span class="ri">'+icons.group+'</span><span class="rt"></span><span class="chev">›</span>';
+   b.querySelector('.rt').textContent=g.name||'Grupo';
+   b.onclick=()=>location.href='/chat.html?id='+encodeURIComponent(g.id);
+   box.appendChild(b);
+  });
+ }catch{}
 }
-load().then(async () => {
-  try {
-    const gs = await (await fetch('/api/common/' + encodeURIComponent(id))).json()
-    if (!gs.length) return
-    const box = document.createElement('div')
-    box.innerHTML = '<div class="sec"><span>' + gs.length + ' grupo' + (gs.length > 1 ? 's' : '') + ' en común</span></div>'
-    gs.forEach(g => {
-      const r = document.createElement('div')
-      r.className = 'row'
-      r.innerHTML = '<div class="ri">👥</div><div class="rt"></div>'
-      r.querySelector('.rt').textContent = g.name
-      r.onclick = () => { location.href = '/chat.html?id=' + encodeURIComponent(g.id) }
-      box.appendChild(r)
-    })
-    $('app').appendChild(box)
-  } catch (e) {}
-})
+function editNote(){
+ const old=localStorage.getItem('note:'+id)||'';
+ const value=prompt('Notas sobre este contacto',old);
+ if(value===null)return;
+ if(value.trim())localStorage.setItem('note:'+id,value.trim());
+ else localStorage.removeItem('note:'+id);
+ render();
+}
+function listsSheet(){
+ const all=JSON.parse(localStorage.getItem('contactLists')||'[]');
+ const mine=state().lists||[];
+ const items=all.map(n=>({label:(mine.includes(n)?'✓ ':'○ ')+n,run:()=>{
+  setState({lists:mine.includes(n)?mine.filter(x=>x!==n):[...mine,n]});render();
+ }}));
+ items.push({label:'＋ Crear nueva lista',run:()=>{
+  const n=prompt('Nombre de la lista');
+  if(!n?.trim())return;
+  const next=[...new Set([...all,n.trim()])];
+  localStorage.setItem('contactLists',JSON.stringify(next));
+  setState({lists:[...mine,n.trim()]});render();
+ }});
+ openSheet('Añadir a la lista',items);
+}
+function storageSheet(){
+ openSheet('Administrar almacenamiento',[
+  {label:'Archivos: '+(store.files||0)+' · '+size(store.bytes||0)},
+  {label:'Eliminar archivos multimedia de este chat',danger:true,run:async()=>{
+   if(!confirm('¿Eliminar los archivos multimedia de este chat del panel?'))return;
+   try{
+    const r=await post('/api/storage/'+encodeURIComponent(id)+'/purge',{});
+    toast('Liberados '+size(r.freed||0));await load();
+   }catch(e){toast(e.message)}
+  }}
+ ]);
+}
+function notifSheet(){
+ const muted=state().muted;
+ openSheet('Notificaciones',muted?[
+  {label:'Activar notificaciones',run:()=>{setState({muted:false});render()}}
+ ]:[
+  {label:'Silenciar 8 horas',run:()=>{setState({muted:true,mutedUntil:Date.now()+8*3600000});render();toast('Preferencia guardada en este dispositivo')}},
+  {label:'Silenciar 1 semana',run:()=>{setState({muted:true,mutedUntil:Date.now()+7*86400000});render();toast('Preferencia guardada en este dispositivo')}},
+  {label:'Silenciar siempre',run:()=>{setState({muted:true,mutedUntil:0});render();toast('Preferencia guardada en este dispositivo')}}
+ ]);
+}
+function visSheet(){
+ openSheet('Visibilidad de archivos multimedia',[
+  {label:'Predeterminado',run:()=>{localStorage.removeItem('mediavis:'+id);render()}},
+  {label:'Sí',run:()=>{localStorage.setItem('mediavis:'+id,'yes');render()}},
+  {label:'No',run:()=>{localStorage.setItem('mediavis:'+id,'no');render()}}
+ ]);
+}
+function ephSheet(){
+ openSheet('Mensajes temporales',[
+  ['Desactivados',0],['24 horas',86400],['7 días',604800],['90 días',7776000]
+ ].map(([label,seconds])=>({label,run:async()=>{
+  try{
+   const r=await post('/api/ephemeral',{chatId:id,seconds});
+   if(!r.ok)throw new Error(r.error||'No se pudo cambiar');
+   localStorage.setItem('eph:'+id,String(seconds));
+   toast('Duración actualizada');render();
+  }catch(e){toast(e.message)}
+ }})));
+}
+function toggleRestrict(){
+ const next=!state().restricted;
+ setState({restricted:next});render();
+ toast(next?'Restricción local activada':'Restricción local desactivada');
+}
+function toggleLimited(){
+ const next=!state().limited;
+ setState({limited:next});render();
+ toast('Preferencia local actualizada');
+}
+function toggleTranslate(){
+ const next=!state().translate;
+ setState({translate:next});render();
+ toast(next?'Preferencia guardada. La traducción automática no está implementada.':'Preferencia desactivada');
+}
+function encryptionInfo(){
+ openSheet('Cifrado de extremo a extremo',[
+  {label:'WhatsApp cifra los mensajes y las llamadas de extremo a extremo. Este panel no puede mostrar ni verificar el código de seguridad de la aplicación oficial.'}
+ ]);
+}
+function unavailable(message){toast(message)}
+async function createGroup(){
+ if(!digits){toast('No se encontró el número del contacto');return}
+ const subject=prompt('Nombre del nuevo grupo');
+ if(!subject?.trim())return;
+ try{
+  const r=await post('/api/group-create',{subject:subject.trim(),numbers:[digits]});
+  if(!r.ok)throw new Error(r.error||'No se pudo crear el grupo');
+  location.href='/chat.html?id='+encodeURIComponent(r.id);
+ }catch(e){toast(e.message)}
+}
+async function blockContact(){
+ if(!confirm('¿Bloquear este contacto en WhatsApp?'))return;
+ try{
+  const r=await post('/api/block',{chatId:id,block:true});
+  if(!r.ok)throw new Error(r.error||'No se pudo bloquear');
+  toast('Contacto bloqueado');
+ }catch(e){toast(e.message)}
+}
+function reportContact(){
+ toast('La función de reportar no está disponible en el backend actual.');
+}
+async function clearChat(){
+ if(!confirm('¿Vaciar los mensajes de este chat en el panel?'))return;
+ try{
+  await post('/chat/'+encodeURIComponent(id)+'/clear',{});
+  toast('Chat vaciado');await load();
+ }catch(e){toast(e.message)}
+}
+function exportChat(){
+ const messages=chat.messages||[];
+ const content=messages.map(m=>{
+  const date=new Date(m.timestamp||Date.now()).toLocaleString();
+  const sender=m.fromMe?'Tú':(m.senderName||'Contacto');
+  return '['+date+'] '+sender+': '+(m.content|| (m.mediaUrl?'[Multimedia]':''));
+ }).join('\n');
+ const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=(($('name').textContent||'chat').replace(/[^a-z0-9_-]/gi,'_'))+'.txt';
+ a.click();URL.revokeObjectURL(a.href);
+}
+function moreMenu(){
+ openSheet('Más opciones',[
+  {label:'Copiar número',run:async()=>{
+   try{await navigator.clipboard.writeText(fmt(digits));toast('Número copiado')}
+   catch{toast(fmt(digits))}
+  }},
+  {label:'Exportar chat',run:exportChat},
+  {label:'Vaciar chat',danger:true,run:clearChat},
+  {label:'Bloquear contacto',danger:true,run:blockContact}
+ ]);
+}
+load();
 </script>
 </body>
 </html>
